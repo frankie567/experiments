@@ -15,3 +15,7 @@ Deep performance analysis of [tagflow](https://github.com/lessrest/tagflow) bott
 ### [tagflow-reimplementation](./tagflow-reimplementation/)
 
 A minimal, efficient reimplementation of Tagflow from scratch that keeps the nice context manager syntax while focusing on performance. Achieves **10.79x faster** performance than original Tagflow through direct string building, explicit document objects (no globals/context vars), and minimal overhead design. Includes convenient shortcuts for common HTML tags (`doc.div()`, `doc.h1()`, etc.). Still 4.46x slower than Jinja2, but significantly closes the performance gap while maintaining the appealing programmatic API.
+
+### [tagflow-rust-pyo3](./tagflow-rust-pyo3/)
+
+A high-performance Tagflow reimplementation using Rust and PyO3 bindings. Maintains identical Python API to the reimplementation while exploring whether Rust's performance can improve HTML generation. Results show comparable performance to Python implementation due to PyO3 call overhead, demonstrating the trade-offs between native performance and cross-language boundaries for simple operations. Successful proof-of-concept for Rust+PyO3 integration patterns.
