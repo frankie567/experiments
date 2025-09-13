@@ -15,3 +15,5 @@ When I ask you to implement a new experiment, please follow these steps:
 5. Make sure the script can be run using `uv run <script_name>.py` command.
 
 If the experiment produces output, like benchmark results or visualizations, please commit them to the repository as well.
+
+After each new experiment, please add it to the main `README.md` file with a brief description and a link to the experiment folder.
