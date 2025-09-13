@@ -8,20 +8,34 @@ Tagflow is a Python library that allows writing HTML documents using context man
 
 This benchmark evaluates:
 - **HTML generation speed** for various scenarios
-- **Memory usage** during HTML generation
-- **Code complexity** and readability
+- **Memory usage** during HTML generation  
+- **Proper Jinja2 setup importance** using Environment vs Template classes
 
 ## Test Scenarios
 
 1. **Simple HTML Page**: Basic HTML structure with minimal content
 2. **Complex HTML Page**: Rich HTML with nested elements, attributes, and dynamic content
-3. **Repeated Elements**: Generating lists/tables with many repeated elements
-4. **Large Document**: Generating a substantial HTML document
+3. **Data Table**: Generating tables with 100 rows of data
+
+## Methodology
+
+The benchmark uses **proper Jinja2 setup** with:
+- `Environment` with `FileSystemLoader` instead of inline `Template` objects
+- Template caching enabled (`cache_size=400`)
+- Optimizations enabled (`auto_reload=False`, `optimized=True`) 
+- Pre-compiled templates for fair comparison
 
 ## Running the Benchmark
 
 ```bash
+# Quick benchmark with proper Jinja2 setup
 uv run benchmark.py
+
+# Full benchmark with results saved to file
+uv run run_benchmark.py
+
+# Compare inline templates vs Environment approach
+uv run jinja_comparison.py
 ```
 
 ## Dependencies
@@ -32,47 +46,50 @@ uv run benchmark.py
 
 ## Results
 
-### Key Findings
+### Key Findings (With Proper Jinja2 Setup)
 
 Based on 1000 iterations per test with 10 warmup runs:
 
-**Tagflow excels at:**
-- ✅ **Simple HTML generation** - 5.00x faster than Jinja2 (0.164ms vs 0.820ms)
-- ✅ **Complex nested structures** - 2.83x faster than Jinja2 (0.917ms vs 2.593ms)
-- ✅ **Low memory footprint** - Consistent ~47-50MB memory usage
-
-**Jinja2 excels at:**
-- ✅ **Repetitive content generation** - 3.32x faster than Tagflow for data tables (2.138ms vs 7.103ms)
-- ✅ **Template-based workflows** - Better for scenarios with lots of repeated elements
+**Jinja2 with Environment excels at ALL scenarios:**
+- ✅ **Simple HTML generation** - 15.39x faster than Tagflow (0.011ms vs 0.166ms)
+- ✅ **Complex nested structures** - 23.62x faster than Tagflow (0.038ms vs 0.896ms)  
+- ✅ **Data tables** - 13.87x faster than Tagflow (0.514ms vs 7.133ms)
+- ✅ **Template compilation and caching** provides massive performance benefits
 
 ### Performance Summary
 
-| Scenario | Tagflow (ms) | Jinja2 (ms) | Winner | Ratio |
-|----------|--------------|-------------|---------|-------|
-| Simple Page | 0.164 | 0.820 | **Tagflow** | 5.00x |
-| Complex Page | 0.917 | 2.593 | **Tagflow** | 2.83x |
-| Data Table (100 rows) | 7.103 | 2.138 | **Jinja2** | 3.32x |
+| Scenario | Tagflow (ms) | Jinja2 Environment (ms) | Winner | Ratio |
+|----------|--------------|-------------------------|---------|-------|
+| Simple Page | 0.166 | 0.011 | **Jinja2** | 15.39x |
+| Complex Page | 0.896 | 0.038 | **Jinja2** | 23.62x |
+| Data Table (100 rows) | 7.133 | 0.514 | **Jinja2** | 13.87x |
 
-**Overall Average:** Jinja2 is 1.47x faster across all scenarios (1.851ms vs 2.728ms)
+**Overall Average:** Jinja2 is **14.55x faster** across all scenarios (0.188ms vs 2.732ms)
+
+### The Importance of Proper Jinja2 Setup
+
+The `jinja_comparison.py` script demonstrates why proper Jinja2 setup matters:
+
+| Method | Simple Page | Data Table | 
+|---------|-------------|------------|
+| Inline Template() | 0.840ms | 2.238ms |
+| Environment + FileSystemLoader | 0.011ms | 0.552ms |
+| **Improvement** | **74.3x faster** | **4.1x faster** |
 
 ### Analysis
 
-- **Tagflow's context manager approach** provides significant performance benefits for structured HTML with moderate complexity
-- **Jinja2's template compilation** makes it more efficient for generating repetitive content like tables and lists
-- **Memory usage** is comparable between both libraries (~47-50MB)
-- **Use case matters**: Choose Tagflow for structured pages, Jinja2 for data-heavy templates
+- **Proper Jinja2 setup is crucial**: Using `Environment` with `FileSystemLoader` instead of inline `Template` objects provides dramatic performance improvements
+- **Template compilation and caching**: Jinja2's built-in optimizations make it significantly faster when used correctly
+- **Tagflow vs optimized Jinja2**: When Jinja2 is properly configured, it outperforms Tagflow in all scenarios
+- **Memory usage** is comparable between both libraries (~47MB)
+- **Previous benchmarks may be misleading** if they don't use proper Jinja2 setup
 
-### Running the Benchmark
+### Recommendations
 
-```bash
-# Quick benchmark
-uv run benchmark.py
-
-# Full benchmark with results saved to file
-uv run run_benchmark.py
-```
-
-Results are automatically saved to timestamped files (`benchmark_results_YYYYMMDD_HHMMSS.txt`).
+- **Use Jinja2 Environment** with FileSystemLoader for production applications
+- **Enable template caching** and optimizations in Jinja2 
+- **Tagflow is still valuable** for cases where programmatic HTML generation is preferred over templates
+- **Benchmark methodology matters**: Always use production-ready configurations when comparing libraries
 
 ## Implementation Notes
 
@@ -81,3 +98,11 @@ Both libraries are tested using equivalent HTML output to ensure fair comparison
 - 1000 test iterations for statistical significance 
 - Memory usage profiling using `memory-profiler`
 - Statistical analysis (mean, std dev, min/max times)
+- **Proper Jinja2 Environment setup** with template caching and optimizations
+
+## Files
+
+- `benchmark.py` - Main benchmark script with optimized Jinja2 setup
+- `run_benchmark.py` - Runs benchmark and saves results to file
+- `jinja_comparison.py` - Demonstrates difference between inline vs Environment approaches
+- `templates/` - Jinja2 template files for fair comparison

@@ -10,7 +10,8 @@ import statistics
 from typing import List, Dict, Any, Callable
 from memory_profiler import memory_usage
 import tagflow
-from jinja2 import Template, Environment
+from jinja2 import Environment, FileSystemLoader
+import os
 
 
 class BenchmarkResult:
@@ -33,6 +34,24 @@ class HTMLBenchmark:
     def __init__(self, iterations: int = 1000):
         self.iterations = iterations
         self.results: List[BenchmarkResult] = []
+        
+        # Set up Jinja Environment with proper optimizations
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        self.jinja_env = Environment(
+            loader=FileSystemLoader(template_dir),
+            # Enable template caching and optimizations
+            cache_size=400,  # Cache up to 400 templates
+            auto_reload=False,  # Disable auto-reloading for performance
+            optimized=True,  # Enable optimizations
+            finalize=lambda x: x if x is not None else ''  # Handle None values
+        )
+        
+        # Pre-load and compile templates for fair comparison
+        self.templates = {
+            'simple_page': self.jinja_env.get_template('simple_page.jinja2'),
+            'complex_page': self.jinja_env.get_template('complex_page.jinja2'),
+            'data_table': self.jinja_env.get_template('data_table.jinja2'),
+        }
     
     def run_benchmark(self, name: str, func: Callable, measure_memory: bool = True) -> BenchmarkResult:
         """Run a benchmark function multiple times and collect statistics"""
@@ -85,9 +104,8 @@ class HTMLBenchmark:
         return str(doc)
     
     def generate_simple_page_jinja(self):
-        """Generate a simple HTML page using Jinja2"""
-        template = Template("""<html><head><title>{{ title }}</title><meta charset="{{ charset }}"></head><body><header><h1>{{ heading }}</h1></header><main><p>{{ content1 }}</p><p>{{ content2 }}</p></main><footer><p>{{ footer }}</p></footer></body></html>""")
-        return template.render(
+        """Generate a simple HTML page using Jinja2 with proper environment"""
+        return self.templates['simple_page'].render(
             title="Simple Page",
             charset="utf-8",
             heading="Welcome",
@@ -156,64 +174,8 @@ class HTMLBenchmark:
         return str(doc)
     
     def generate_complex_page_jinja(self):
-        """Generate a complex HTML page using Jinja2"""
-        template = Template("""
-<html lang="en">
-<head>
-    <title>{{ title }}</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>{{ styles }}</style>
-</head>
-<body>
-    <nav class="nav">
-        <ul>
-            {% for item in nav_items %}
-            <li><a href="#{{ item.lower() }}">{{ item }}</a></li>
-            {% endfor %}
-        </ul>
-    </nav>
-    
-    <header>
-        <h1>{{ heading }}</h1>
-        <p class="subtitle">{{ subtitle }}</p>
-    </header>
-    
-    <main>
-        <section id="content">
-            <h2>Main Content</h2>
-            <div class="grid">
-                {% for article in articles %}
-                <article class="card">
-                    <h3>{{ article.title }}</h3>
-                    <p>{{ article.content }}</p>
-                    <div class="meta">
-                        <span class="date">{{ article.date }}</span>
-                        <span class="author">{{ article.author }}</span>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-        </section>
-        
-        <aside>
-            <h3>Sidebar</h3>
-            <ul>
-                {% for link in sidebar_links %}
-                <li><a href="#">{{ link }}</a></li>
-                {% endfor %}
-            </ul>
-        </aside>
-    </main>
-    
-    <footer>
-        <p>{{ footer }}</p>
-    </footer>
-</body>
-</html>
-        """.strip())
-        
-        return template.render(
+        """Generate a complex HTML page using Jinja2 with proper environment"""
+        return self.templates['complex_page'].render(
             title="Complex Page",
             styles="body { font-family: Arial, sans-serif; } .nav { background: #333; } .nav a { color: white; }",
             nav_items=["Home", "About", "Services", "Contact"],
@@ -263,38 +225,7 @@ class HTMLBenchmark:
         return str(doc)
     
     def generate_table_jinja(self):
-        """Generate a table with many rows using Jinja2"""
-        template = Template("""
-<html>
-<head>
-    <title>Data Table</title>
-</head>
-<body>
-    <h1>Performance Data</h1>
-    <table>
-        <thead>
-            <tr>
-                {% for header in headers %}
-                <th>{{ header }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in data %}
-            <tr>
-                <td>{{ row.id }}</td>
-                <td>{{ row.name }}</td>
-                <td>{{ row.email }}</td>
-                <td>{{ row.department }}</td>
-                <td>{{ row.salary }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
-        """.strip())
-        
+        """Generate a table with many rows using Jinja2 with proper environment"""
         data = []
         for i in range(100):
             data.append({
@@ -305,7 +236,7 @@ class HTMLBenchmark:
                 "salary": f"${50000 + (i * 1000):,}"
             })
         
-        return template.render(
+        return self.templates['data_table'].render(
             headers=["ID", "Name", "Email", "Department", "Salary"],
             data=data
         )
@@ -314,11 +245,11 @@ class HTMLBenchmark:
         """Run all benchmark scenarios"""
         scenarios = [
             ("Simple Page (Tagflow)", self.generate_simple_page_tagflow),
-            ("Simple Page (Jinja)", self.generate_simple_page_jinja),
+            ("Simple Page (Jinja Environment)", self.generate_simple_page_jinja),
             ("Complex Page (Tagflow)", self.generate_complex_page_tagflow),
-            ("Complex Page (Jinja)", self.generate_complex_page_jinja),
+            ("Complex Page (Jinja Environment)", self.generate_complex_page_jinja),
             ("Data Table (Tagflow)", self.generate_table_tagflow),
-            ("Data Table (Jinja)", self.generate_table_jinja),
+            ("Data Table (Jinja Environment)", self.generate_table_jinja),
         ]
         
         for name, func in scenarios:
@@ -382,7 +313,7 @@ class HTMLBenchmark:
         print(f"{'='*60}")
         
         tagflow_times = [r.avg_time for r in self.results if 'Tagflow' in r.name]
-        jinja_times = [r.avg_time for r in self.results if 'Jinja' in r.name]
+        jinja_times = [r.avg_time for r in self.results if 'Jinja Environment' in r.name]
         
         if tagflow_times and jinja_times:
             avg_tagflow = statistics.mean(tagflow_times)
