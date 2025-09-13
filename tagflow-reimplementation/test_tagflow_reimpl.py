@@ -116,6 +116,23 @@ def test_attribute_name_conversion():
     print("✓ Attribute name conversion test passed")
 
 
+def test_reserved_keyword_attributes():
+    """Test that reserved Python keywords work as HTML attributes."""
+    doc = Document()
+    
+    # Test 'for' attribute - common with label tags
+    with doc.label(for_="username", class_="form-label"):
+        doc.text("Username:")
+    
+    with doc.input(type="text", id="username", name="username"):
+        pass
+    
+    html = doc.render()
+    expected = '<label for="username" class="form-label">Username:</label><input type="text" id="username" name="username" />'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ Reserved keyword attributes test passed")
+
+
 def test_document_reuse():
     """Test that documents can be cleared and reused."""
     doc = Document()
@@ -258,6 +275,7 @@ def run_all_tests():
     test_raw_content()
     test_self_closing_tags()
     test_attribute_name_conversion()
+    test_reserved_keyword_attributes()
     test_document_reuse()
     test_convenience_function()
     test_tag_shortcuts()
