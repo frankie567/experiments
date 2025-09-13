@@ -215,6 +215,175 @@ def demo_data_generation():
     print()
 
 
+def demo_attr_function():
+    """Demonstrate the new attr() function for dynamic attributes."""
+    print("=== Dynamic Attributes (attr) Demo ===")
+    
+    doc = Document()
+    
+    # Simulate user preferences and states
+    user_is_admin = True
+    user_theme = "dark"
+    show_advanced = False
+    notification_count = 5
+    
+    with doc.tag("html"):
+        with doc.tag("head"):
+            with doc.tag("title"):
+                doc.text("Dynamic Attributes Demo")
+        with doc.tag("body"):
+            # Dynamic container styling based on user preferences
+            with doc.div():
+                doc.attr("class", "main-container")
+                if user_theme == "dark":
+                    doc.attr("data-theme", "dark")
+                    doc.attr("class", "main-container dark-theme")  # Override class
+                if user_is_admin:
+                    doc.attr("data-role", "administrator")
+                
+                with doc.h1():
+                    doc.text("Dashboard")
+                
+                # Navigation with conditional attributes
+                with doc.nav():
+                    doc.attr("class", "main-nav")
+                    if user_is_admin:
+                        doc.attr("data-admin", "true")
+                    
+                    with doc.ul():
+                        nav_items = [
+                            ("Home", "#home", True),
+                            ("Profile", "#profile", True),
+                            ("Admin Panel", "#admin", user_is_admin),
+                            ("Settings", "#settings", show_advanced)
+                        ]
+                        
+                        for text, href, should_show in nav_items:
+                            if should_show:
+                                with doc.li():
+                                    with doc.a(href=href):
+                                        if text == "Admin Panel" and user_is_admin:
+                                            doc.attr("class", "admin-link")
+                                            doc.attr("data-privilege", "high")
+                                        doc.text(text)
+                
+                # Notification badge with dynamic attributes
+                with doc.div():
+                    doc.attr("class", "notification-badge")
+                    if notification_count > 0:
+                        doc.attr("data-count", str(notification_count))
+                        if notification_count > 10:
+                            doc.attr("class", "notification-badge urgent")
+                    else:
+                        doc.attr("style", "display: none;")
+                    
+                    doc.text(f"{notification_count} notifications")
+                
+                # Form with conditional validation attributes
+                with doc.form(action="/submit"):
+                    with doc.div():
+                        doc.attr("class", "form-group")
+                        
+                        with doc.label(for_="username"):
+                            doc.text("Username:")
+                        
+                        # For self-closing tags, we need to pass attributes directly
+                        # or build them conditionally before creating the tag
+                        input_attrs = {"type": "text", "id": "username", "name": "username"}
+                        if user_is_admin:
+                            input_attrs["data-admin-field"] = "true"
+                        if show_advanced:
+                            input_attrs["data-validation"] = "strict"
+                            input_attrs["pattern"] = "[a-zA-Z0-9_]{3,20}"
+                        
+                        with doc.tag("input", **input_attrs):
+                            pass
+                    
+                    with doc.div():
+                        doc.attr("class", "form-actions")
+                        
+                        with doc.button(type="submit"):
+                            doc.attr("class", "btn btn-primary")
+                            if not user_is_admin:
+                                doc.attr("data-confirm", "Are you sure?")
+                            doc.text("Submit")
+                        
+                        # Admin-only button
+                        if user_is_admin:
+                            with doc.button(type="button"):
+                                doc.attr("class", "btn btn-danger")
+                                doc.attr("data-action", "admin-delete")
+                                doc.attr("onclick", "confirmAdminAction()")
+                                doc.text("Admin Delete")
+    
+    html = doc.render()
+    print(html)
+    print()
+    
+    # Show how the same structure looks with different conditions
+    print("=== Same Structure with Different Conditions ===")
+    doc.clear()
+    
+    # Different user state
+    user_is_admin = False
+    user_theme = "light"
+    show_advanced = True
+    notification_count = 0
+    
+    with doc.tag("html"):
+        with doc.tag("head"):
+            with doc.tag("title"):
+                doc.text("Dynamic Attributes Demo")
+        with doc.tag("body"):
+            with doc.div():
+                doc.attr("class", "main-container")
+                if user_theme == "dark":
+                    doc.attr("data-theme", "dark")
+                    doc.attr("class", "main-container dark-theme")
+                if user_is_admin:
+                    doc.attr("data-role", "administrator")
+                
+                with doc.h1():
+                    doc.text("Dashboard")
+                
+                with doc.nav():
+                    doc.attr("class", "main-nav")
+                    if user_is_admin:
+                        doc.attr("data-admin", "true")
+                    
+                    with doc.ul():
+                        nav_items = [
+                            ("Home", "#home", True),
+                            ("Profile", "#profile", True),
+                            ("Admin Panel", "#admin", user_is_admin),
+                            ("Settings", "#settings", show_advanced)
+                        ]
+                        
+                        for text, href, should_show in nav_items:
+                            if should_show:
+                                with doc.li():
+                                    with doc.a(href=href):
+                                        if text == "Admin Panel" and user_is_admin:
+                                            doc.attr("class", "admin-link")
+                                            doc.attr("data-privilege", "high")
+                                        doc.text(text)
+                
+                with doc.div():
+                    doc.attr("class", "notification-badge")
+                    if notification_count > 0:
+                        doc.attr("data-count", str(notification_count))
+                        if notification_count > 10:
+                            doc.attr("class", "notification-badge urgent")
+                    else:
+                        doc.attr("style", "display: none;")
+                    
+                    doc.text(f"{notification_count} notifications")
+    
+    html = doc.render()
+    print(html)
+    print()
+
+
 def demo_document_reuse():
     """Demonstrate document reuse for multiple generations."""
     print("=== Document Reuse Demo ===")
@@ -245,6 +414,7 @@ def main():
     demo_tag_shortcuts()
     demo_complex_features()
     demo_data_generation()
+    demo_attr_function()
     demo_document_reuse()
     
     print("Demo complete! ✓")

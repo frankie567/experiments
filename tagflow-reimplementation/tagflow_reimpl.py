@@ -70,25 +70,73 @@ class _TagContext:
     """Context manager for HTML tags.
     
     This is a lightweight object that handles opening and closing tags
-    with minimal overhead.
+    with minimal overhead. It supports lazy tag writing to allow dynamic
+    attribute addition via the attr() method.
     """
     
-    __slots__ = ("_document", "_tag_name", "_self_closing")
+    __slots__ = ("_document", "_tag_name", "_self_closing", "_attrs", "_opened")
     
-    def __init__(self, document: Document, tag_name: str, self_closing: bool = False) -> None:
+    def __init__(self, document: Document, tag_name: str, attrs: dict[str, Any], self_closing: bool = False) -> None:
         self._document = document
         self._tag_name = tag_name
         self._self_closing = self_closing
+        self._attrs = attrs.copy()  # Copy to avoid mutation issues
+        self._opened = False
+    
+    def _ensure_opened(self) -> None:
+        """Ensure the opening tag has been written to the document."""
+        if not self._opened:
+            self._opened = True
+            
+            # Build the opening tag
+            if self._attrs:
+                attr_str = " " + " ".join(
+                    f'{_convert_attr_name(k)}="{_escape_attr_value(v)}"'
+                    for k, v in self._attrs.items()
+                    if v is not None
+                )
+            else:
+                attr_str = ""
+            
+            if self._self_closing:
+                self._document._parts.append(f"<{self._tag_name}{attr_str} />")
+            else:
+                self._document._parts.append(f"<{self._tag_name}{attr_str}>")
+    
+    def add_attr(self, name: str, value: Any) -> None:
+        """Add an attribute to this tag context.
+        
+        Args:
+            name: The attribute name
+            value: The attribute value
+            
+        Raises:
+            RuntimeError: If the tag has already been opened
+        """
+        if self._opened:
+            raise RuntimeError(f"Cannot add attribute '{name}' to tag '{self._tag_name}': tag already opened")
+        
+        self._attrs[name] = value
     
     def __enter__(self) -> _TagContext:
         if not self._self_closing:
             self._document._tag_stack.append(self._tag_name)
+            self._document._context_stack.append(self)
+        else:
+            # Self-closing tags are opened immediately
+            self._ensure_opened()
         return self
     
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if not self._self_closing:
+            # Ensure the tag is opened before closing
+            self._ensure_opened()
+            
             closing_tag = self._document._tag_stack.pop()
             self._document._parts.append(f"</{closing_tag}>")
+            
+            # Remove this context from the stack
+            self._document._context_stack.pop()
 
 
 class Document:
@@ -99,7 +147,8 @@ class Document:
     performance optimizations.
     
     The Document class includes shortcuts for common HTML tags, allowing
-    for more concise and readable code.
+    for more concise and readable code. It also supports dynamic attribute
+    addition via the attr() method.
     
     Example:
         doc = Document()
@@ -110,19 +159,22 @@ class Document:
             with doc.tag("body"):
                 with doc.h1(class_="title"):  # Shortcut for doc.tag("h1", ...)
                     doc.text("Welcome!")
-                with doc.div(class_="content"):
+                with doc.div() as div_tag:
+                    if some_condition:
+                        doc.attr("class", "special")  # Dynamic attribute
                     with doc.p():
                         doc.text("This is a paragraph.")
         
         html_output = doc.render()
     """
     
-    __slots__ = ("_parts", "_tag_stack")
+    __slots__ = ("_parts", "_tag_stack", "_context_stack")
     
     def __init__(self) -> None:
         """Initialize an empty document."""
         self._parts: list[str] = []
         self._tag_stack: list[str] = []
+        self._context_stack: list[_TagContext] = []
     
     def tag(self, tag_name: str, **attrs: Any) -> _TagContext:
         """Create a tag context manager.
@@ -138,28 +190,19 @@ class Document:
             with doc.tag("div", class_="container", data_value="123"):
                 doc.text("Content")
         """
+        # Ensure the current tag (if any) is opened before creating a nested tag
+        if self._context_stack:
+            self._context_stack[-1]._ensure_opened()
+        
         # Check for self-closing tags
         self_closing = tag_name.lower() in {
             "area", "base", "br", "col", "embed", "hr", "img", "input",
             "link", "meta", "param", "source", "track", "wbr"
         }
         
-        # Build the opening tag
-        if attrs:
-            attr_str = " " + " ".join(
-                f'{_convert_attr_name(k)}="{_escape_attr_value(v)}"'
-                for k, v in attrs.items()
-                if v is not None
-            )
-        else:
-            attr_str = ""
-        
-        if self_closing:
-            self._parts.append(f"<{tag_name}{attr_str} />")
-        else:
-            self._parts.append(f"<{tag_name}{attr_str}>")
-        
-        return _TagContext(self, tag_name, self_closing)
+        # Create the tag context (opening tag is written lazily)
+        context = _TagContext(self, tag_name, attrs, self_closing)
+        return context
     
     def text(self, content: Any) -> None:
         """Add text content to the document.
@@ -171,6 +214,9 @@ class Document:
             doc.text("Hello & welcome!")  # Becomes "Hello &amp; welcome!"
         """
         if content is not None:
+            # Ensure current tag is opened before adding content
+            if self._context_stack:
+                self._context_stack[-1]._ensure_opened()
             self._parts.append(_escape_text(content))
     
     def raw(self, content: Any) -> None:
@@ -185,7 +231,35 @@ class Document:
             doc.raw("<em>Already formatted</em>")
         """
         if content is not None:
+            # Ensure current tag is opened before adding content
+            if self._context_stack:
+                self._context_stack[-1]._ensure_opened()
             self._parts.append(str(content))
+    
+    def attr(self, name: str, value: Any) -> None:
+        """Add an attribute to the current tag.
+        
+        This method allows dynamic addition of attributes to the currently
+        open tag context. This is very useful for conditional logic.
+        
+        Args:
+            name: The attribute name (will be converted like other attributes)
+            value: The attribute value
+            
+        Raises:
+            RuntimeError: If there is no current tag context or if the tag has already been opened
+            
+        Example:
+            with doc.div() as div_tag:
+                if user_is_admin:
+                    doc.attr("class", "admin-panel")
+                    doc.attr("data-role", "administrator")
+                doc.text("Content")
+        """
+        if not self._context_stack:
+            raise RuntimeError("No current tag context. attr() can only be called within a tag context.")
+        
+        self._context_stack[-1].add_attr(name, value)
     
     def render(self) -> str:
         """Render the document to an HTML string.
@@ -206,6 +280,7 @@ class Document:
         """Clear the document content, allowing reuse of the same Document object."""
         self._parts.clear()
         self._tag_stack.clear()
+        self._context_stack.clear()
     
     def __str__(self) -> str:
         """Return the rendered HTML when converting to string."""
@@ -361,17 +436,29 @@ class Document:
         """Create a pre tag. Shortcut for tag('pre', **attrs)."""
         return self.tag("pre", **attrs)
     
-    def img(self, **attrs: Any) -> _TagContext:
-        """Create an img tag. Shortcut for tag('img', **attrs)."""
-        return self.tag("img", **attrs)
+    def img(self, **attrs: Any) -> None:
+        """Create an img tag. Shortcut for tag('img', **attrs).
+        
+        Note: This is a self-closing tag and doesn't need a context manager.
+        """
+        with self.tag("img", **attrs):
+            pass
     
-    def br(self, **attrs: Any) -> _TagContext:
-        """Create a br tag. Shortcut for tag('br', **attrs)."""
-        return self.tag("br", **attrs)
+    def br(self, **attrs: Any) -> None:
+        """Create a br tag. Shortcut for tag('br', **attrs).
+        
+        Note: This is a self-closing tag and doesn't need a context manager.
+        """
+        with self.tag("br", **attrs):
+            pass
     
-    def hr(self, **attrs: Any) -> _TagContext:
-        """Create an hr tag. Shortcut for tag('hr', **attrs)."""
-        return self.tag("hr", **attrs)
+    def hr(self, **attrs: Any) -> None:
+        """Create an hr tag. Shortcut for tag('hr', **attrs).
+        
+        Note: This is a self-closing tag and doesn't need a context manager.
+        """
+        with self.tag("hr", **attrs):
+            pass
 
 
 # Convenience function for creating documents

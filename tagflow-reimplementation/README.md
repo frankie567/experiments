@@ -11,6 +11,8 @@ This experiment creates a new Tagflow-like library from scratch, addressing the 
 - **Minimal context manager overhead** with efficient implementation
 - **Full type annotations** using modern Python syntax
 - **Simple, focused API** that prioritizes performance
+- **Tag shortcuts** for common HTML elements (h1, div, p, etc.)
+- **Dynamic attribute addition** via `attr()` function for conditional logic
 
 ## Design Principles
 
@@ -65,6 +67,34 @@ with doc.div(class_="container"):
 **Available shortcuts**: `div`, `p`, `span`, `h1`-`h6`, `a`, `button`, `form`, `input`, `label`, `select`, `option`, `textarea`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `td`, `th`, `section`, `article`, `header`, `footer`, `nav`, `main`, `aside`, `strong`, `em`, `code`, `pre`, `img`, `br`, `hr`
 
 The shortcuts are equivalent to calling `doc.tag(tagname, **attrs)` and maintain the same performance characteristics.
+
+### Dynamic Attributes with `attr()`
+
+The library supports dynamic attribute addition using the `attr()` function, which is very handy for conditional logic:
+
+```python
+with doc.div():
+    doc.attr("class", "container")
+    
+    if user_is_admin:
+        doc.attr("data-role", "administrator")
+        doc.attr("class", "container admin-panel")  # Override previous value
+    
+    if dark_theme:
+        doc.attr("data-theme", "dark")
+    
+    doc.text("Content")
+```
+
+This generates different HTML based on the conditions:
+- Admin with dark theme: `<div class="container admin-panel" data-role="administrator" data-theme="dark">Content</div>`
+- Regular user: `<div class="container">Content</div>`
+
+**Important notes about `attr()`**:
+- Must be called within a tag context (after `with doc.tag(...)` or shortcut)
+- Can only be called before any content (text, raw HTML, or nested tags) is added
+- Subsequent calls to `attr()` with the same name will override previous values
+- Works with all attribute name conversions (e.g., `class_` → `class`, `data_value` → `data-value`)
 
 ## Performance Goals
 

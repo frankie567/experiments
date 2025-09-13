@@ -227,6 +227,170 @@ def test_shortcuts_equivalent_to_tag():
     print("✓ Shortcuts equivalent to tag() test passed")
 
 
+def test_attr_function():
+    """Test the attr() function for dynamic attribute addition."""
+    doc = Document()
+    
+    # Basic attr() usage
+    with doc.div():
+        doc.attr("class", "container")
+        doc.attr("id", "main")
+        doc.text("Content")
+    
+    html = doc.render()
+    expected = '<div class="container" id="main">Content</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ Basic attr() test passed")
+
+
+def test_attr_conditional_logic():
+    """Test attr() with conditional logic - the main use case."""
+    doc = Document()
+    
+    user_is_admin = True
+    show_tooltip = False
+    
+    with doc.div():
+        if user_is_admin:
+            doc.attr("class", "admin-panel")
+            doc.attr("data-role", "administrator")
+        if show_tooltip:
+            doc.attr("title", "This is a tooltip")
+        doc.text("Admin Panel")
+    
+    html = doc.render()
+    expected = '<div class="admin-panel" data-role="administrator">Admin Panel</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    
+    # Test with different conditions
+    doc.clear()
+    user_is_admin = False
+    show_tooltip = True
+    
+    with doc.div():
+        if user_is_admin:
+            doc.attr("class", "admin-panel")
+            doc.attr("data-role", "administrator")
+        if show_tooltip:
+            doc.attr("title", "This is a tooltip")
+        doc.text("Regular Panel")
+    
+    html = doc.render()
+    expected = '<div title="This is a tooltip">Regular Panel</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ Conditional attr() test passed")
+
+
+def test_attr_with_initial_attributes():
+    """Test attr() when the tag already has initial attributes."""
+    doc = Document()
+    
+    with doc.div(id="container", data_type="widget"):
+        doc.attr("class", "active")
+        doc.attr("data-value", "123")
+        doc.text("Widget")
+    
+    html = doc.render()
+    expected = '<div id="container" data-type="widget" class="active" data-value="123">Widget</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ attr() with initial attributes test passed")
+
+
+def test_attr_attribute_name_conversion():
+    """Test that attr() properly converts attribute names."""
+    doc = Document()
+    
+    with doc.div():
+        doc.attr("class_", "test")
+        doc.attr("data_value", "123")
+        doc.attr("aria_label", "button")
+        doc.attr("for_", "username")
+        doc.text("Content")
+    
+    html = doc.render()
+    expected = '<div class="test" data-value="123" aria-label="button" for="username">Content</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ attr() attribute name conversion test passed")
+
+
+def test_attr_value_escaping():
+    """Test that attr() properly escapes attribute values."""
+    doc = Document()
+    
+    with doc.div():
+        doc.attr("title", 'Test & "quoted" <value>')
+        doc.attr("data-info", "Line 1\nLine 2")
+        doc.text("Content")
+    
+    html = doc.render()
+    expected = '<div title="Test &amp; &quot;quoted&quot; &lt;value&gt;" data-info="Line 1\nLine 2">Content</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ attr() value escaping test passed")
+
+
+def test_attr_error_cases():
+    """Test error cases for attr() function."""
+    doc = Document()
+    
+    # Test calling attr() outside of a tag context
+    try:
+        doc.attr("class", "test")
+        assert False, "Should have raised RuntimeError"
+    except RuntimeError as e:
+        assert "No current tag context" in str(e)
+    
+    # Test calling attr() after tag has been opened
+    with doc.div():
+        doc.text("This opens the tag")
+        try:
+            doc.attr("class", "test")
+            assert False, "Should have raised RuntimeError"
+        except RuntimeError as e:
+            assert "tag already opened" in str(e)
+    
+    print("✓ attr() error cases test passed")
+
+
+def test_attr_with_nested_tags():
+    """Test attr() with nested tag structures."""
+    doc = Document()
+    
+    with doc.div():
+        doc.attr("class", "outer")
+        
+        with doc.p():
+            doc.attr("class", "inner")
+            doc.text("Paragraph")
+        
+        doc.text("Outer text")
+    
+    html = doc.render()
+    expected = '<div class="outer"><p class="inner">Paragraph</p>Outer text</div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ attr() with nested tags test passed")
+
+
+def test_attr_with_shortcuts():
+    """Test attr() works with tag shortcuts."""
+    doc = Document()
+    
+    with doc.div():
+        doc.attr("class", "container")
+        
+        with doc.h1():
+            doc.attr("id", "title")
+            doc.text("Title")
+        
+        with doc.p():
+            doc.attr("class", "description")
+            doc.text("Description")
+    
+    html = doc.render()
+    expected = '<div class="container"><h1 id="title">Title</h1><p class="description">Description</p></div>'
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ attr() with shortcuts test passed")
+
+
 def test_complex_nested_structure():
     """Test complex nested HTML structure similar to benchmark tests."""
     doc = Document()
@@ -246,6 +410,9 @@ def test_complex_nested_structure():
                                 doc.text(item)
             with doc.tag("main"):
                 with doc.tag("h1"):
+                    doc.text("Welcome")
+                with doc.tag("p"):
+                    doc.text("This is a test page.")
                     doc.text("Welcome")
                 with doc.tag("p"):
                     doc.text("This is a test page.")
@@ -280,6 +447,14 @@ def run_all_tests():
     test_convenience_function()
     test_tag_shortcuts()
     test_shortcuts_equivalent_to_tag()
+    test_attr_function()
+    test_attr_conditional_logic()
+    test_attr_with_initial_attributes()
+    test_attr_attribute_name_conversion()
+    test_attr_value_escaping()
+    test_attr_error_cases()
+    test_attr_with_nested_tags()
+    test_attr_with_shortcuts()
     test_complex_nested_structure()
     
     print()
