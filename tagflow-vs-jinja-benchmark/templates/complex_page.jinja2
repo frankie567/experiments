@@ -1,0 +1,53 @@
+<html lang="en">
+<head>
+    <title>{{ title }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>{{ styles }}</style>
+</head>
+<body>
+    <nav class="nav">
+        <ul>
+            {% for item in nav_items %}
+            <li><a href="#{{ item.lower() }}">{{ item }}</a></li>
+            {% endfor %}
+        </ul>
+    </nav>
+    
+    <header>
+        <h1>{{ heading }}</h1>
+        <p class="subtitle">{{ subtitle }}</p>
+    </header>
+    
+    <main>
+        <section id="content">
+            <h2>Main Content</h2>
+            <div class="grid">
+                {% for article in articles %}
+                <article class="card">
+                    <h3>{{ article.title }}</h3>
+                    <p>{{ article.content }}</p>
+                    <div class="meta">
+                        <span class="date">{{ article.date }}</span>
+                        <span class="author">{{ article.author }}</span>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <aside>
+            <h3>Sidebar</h3>
+            <ul>
+                {% for link in sidebar_links %}
+                <li><a href="#">{{ link }}</a></li>
+                {% endfor %}
+            </ul>
+        </aside>
+    </main>
+    
+    <footer>
+        <p>{{ footer }}</p>
+    </footer>
+</body>
+</html>

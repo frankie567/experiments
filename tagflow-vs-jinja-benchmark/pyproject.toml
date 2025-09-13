@@ -1,0 +1,27 @@
+[project]
+name = "tagflow-vs-jinja-benchmark"
+version = "0.1.0"
+description = "Performance benchmark comparing tagflow vs Jinja for HTML generation"
+authors = [
+    {name = "Copilot", email = "copilot@github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "tagflow>=0.1.0",
+    "jinja2>=3.0.0",
+    "memory-profiler>=0.60.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

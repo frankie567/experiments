@@ -1,0 +1,96 @@
+Tagflow vs Jinja2 Performance Benchmark Results
+============================================================
+
+System Information:
+  Python version: 3.13.7
+  Platform: Linux-6.11.0-1018-azure-x86_64-with-glibc2.39
+  Processor: x86_64
+  Timestamp: 2025-09-13T13:27:35.612410
+  Iterations per test: 1000
+  Warmup runs: 10
+
+
+================================================================================
+BENCHMARK RESULTS
+================================================================================
+
+Iterations per test: 1000
+Warmup runs: 10
+
+------------------------------------------------------------
+SCENARIO: Simple Page
+------------------------------------------------------------
+
+Tagflow:
+  Average time: 0.166 ms
+  Std deviation: 0.009 ms
+  Min time: 0.157 ms
+  Max time: 0.271 ms
+  Peak memory: 47.46 MB
+
+Jinja Environment:
+  Average time: 0.011 ms
+  Std deviation: 0.002 ms
+  Min time: 0.010 ms
+  Max time: 0.037 ms
+  Peak memory: 47.46 MB
+
+  COMPARISON:
+  Jinja Environment is 15.39x faster than Tagflow
+  Jinja Environment: 0.011 ms avg
+  Tagflow: 0.166 ms avg
+
+------------------------------------------------------------
+SCENARIO: Complex Page
+------------------------------------------------------------
+
+Tagflow:
+  Average time: 0.896 ms
+  Std deviation: 0.075 ms
+  Min time: 0.864 ms
+  Max time: 2.030 ms
+  Peak memory: 47.59 MB
+
+Jinja Environment:
+  Average time: 0.038 ms
+  Std deviation: 0.004 ms
+  Min time: 0.036 ms
+  Max time: 0.085 ms
+  Peak memory: 47.59 MB
+
+  COMPARISON:
+  Jinja Environment is 23.62x faster than Tagflow
+  Jinja Environment: 0.038 ms avg
+  Tagflow: 0.896 ms avg
+
+------------------------------------------------------------
+SCENARIO: Data Table
+------------------------------------------------------------
+
+Tagflow:
+  Average time: 7.133 ms
+  Std deviation: 0.054 ms
+  Min time: 7.052 ms
+  Max time: 7.555 ms
+  Peak memory: 47.71 MB
+
+Jinja Environment:
+  Average time: 0.514 ms
+  Std deviation: 0.009 ms
+  Min time: 0.502 ms
+  Max time: 0.599 ms
+  Peak memory: 47.71 MB
+
+  COMPARISON:
+  Jinja Environment is 13.87x faster than Tagflow
+  Jinja Environment: 0.514 ms avg
+  Tagflow: 7.133 ms avg
+
+============================================================
+OVERALL SUMMARY
+============================================================
+
+Average across all scenarios:
+  Tagflow: 2.732 ms
+  Jinja: 0.188 ms
+  Jinja is 14.55x faster on average
