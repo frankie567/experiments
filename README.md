@@ -11,3 +11,7 @@ Performance benchmark comparing [tagflow](https://github.com/lessrest/tagflow) a
 ### [tagflow-performance-analysis](./tagflow-performance-analysis/)
 
 Deep performance analysis of [tagflow](https://github.com/lessrest/tagflow) bottlenecks and optimization strategies. Uses profiling to identify performance issues and implements targeted optimizations to reduce the gap with Jinja2. Explores string-based generation, context optimization, and static mode improvements.
+
+### [tagflow-reimplementation](./tagflow-reimplementation/)
+
+A minimal, efficient reimplementation of Tagflow from scratch that keeps the nice context manager syntax while focusing on performance. Achieves **10.79x faster** performance than original Tagflow through direct string building, explicit document objects (no globals/context vars), and minimal overhead design. Still 4.46x slower than Jinja2, but significantly closes the performance gap while maintaining the appealing programmatic API.

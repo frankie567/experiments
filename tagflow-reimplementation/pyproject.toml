@@ -1,0 +1,35 @@
+[project]
+name = "tagflow-reimplementation"
+version = "0.1.0"
+description = "A minimal, efficient reimplementation of Tagflow focused on performance"
+authors = [
+    {name = "Copilot", email = "copilot@github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "tagflow>=0.1.0",  # For performance comparison
+    "jinja2>=3.0.0",   # For performance comparison
+    "memory-profiler>=0.60.0",  # For memory usage analysis
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "mypy>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
