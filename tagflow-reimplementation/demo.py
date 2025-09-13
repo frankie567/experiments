@@ -21,10 +21,115 @@ def demo_simple_page():
             with doc.tag("meta", charset="utf-8"):
                 pass
         with doc.tag("body"):
-            with doc.tag("h1", class_="title"):
+            with doc.h1(class_="title"):  # Using shortcut!
                 doc.text("Hello World!")
-            with doc.tag("p"):
+            with doc.p():  # Using shortcut!
                 doc.text("This is generated using the reimplemented Tagflow.")
+    
+    html = doc.render()
+    print(html)
+    print()
+
+
+def demo_tag_shortcuts():
+    """Demonstrate the new tag shortcuts functionality."""
+    print("=== Tag Shortcuts Demo ===")
+    
+    doc = Document()
+    with doc.tag("html", lang="en"):
+        with doc.tag("head"):
+            with doc.tag("title"):
+                doc.text("Tag Shortcuts Demo")
+        with doc.tag("body"):
+            # Header section using shortcuts
+            with doc.header(class_="main-header"):
+                with doc.h1():
+                    doc.text("Welcome to Tagflow")
+                with doc.p():
+                    doc.text("Now with convenient tag shortcuts!")
+            
+            # Navigation using shortcuts
+            with doc.nav():
+                with doc.ul(class_="nav-list"):
+                    for item in ["Home", "About", "Contact"]:
+                        with doc.li():
+                            with doc.a(href=f"#{item.lower()}", class_="nav-link"):
+                                doc.text(item)
+            
+            # Main content using shortcuts
+            with doc.main():
+                with doc.section(class_="content"):
+                    with doc.h2():
+                        doc.text("Features")
+                    with doc.div(class_="feature-grid"):
+                        for i, feature in enumerate(["Fast", "Simple", "Type-safe"], 1):
+                            with doc.div(class_="feature-card"):
+                                with doc.h3():
+                                    doc.text(f"Feature {i}")
+                                with doc.p():
+                                    doc.text(f"This feature is {feature.lower()}.")
+                
+                # Form example using shortcuts
+                with doc.section(class_="form-section"):
+                    with doc.h2():
+                        doc.text("Contact Form")
+                    with doc.form(action="/submit", method="post"):
+                        with doc.div(class_="form-group"):
+                            with doc.label(for_="name"):
+                                doc.text("Name:")
+                            doc.input(type="text", id="name", name="name", required="true")
+                        
+                        with doc.div(class_="form-group"):
+                            with doc.label(for_="email"):
+                                doc.text("Email:")
+                            doc.input(type="email", id="email", name="email", required="true")
+                        
+                        with doc.div(class_="form-group"):
+                            with doc.label(for_="message"):
+                                doc.text("Message:")
+                            with doc.textarea(id="message", name="message", rows="4"):
+                                doc.text("Enter your message here...")
+                        
+                        with doc.button(type="submit", class_="submit-btn"):
+                            doc.text("Send Message")
+                
+                # Table example using shortcuts
+                with doc.section(class_="table-section"):
+                    with doc.h2():
+                        doc.text("Performance Comparison")
+                    with doc.table(class_="comparison-table"):
+                        with doc.thead():
+                            with doc.tr():
+                                with doc.th():
+                                    doc.text("Library")
+                                with doc.th():
+                                    doc.text("Speed")
+                                with doc.th():
+                                    doc.text("Type Safety")
+                        with doc.tbody():
+                            data = [
+                                ("Original Tagflow", "Slow", "No"),
+                                ("Tagflow Reimpl", "Fast", "Yes"),
+                                ("Jinja2", "Fastest", "Limited")
+                            ]
+                            for lib, speed, types in data:
+                                with doc.tr():
+                                    with doc.td():
+                                        doc.text(lib)
+                                    with doc.td():
+                                        with doc.strong():
+                                            doc.text(speed)
+                                    with doc.td():
+                                        with doc.em():
+                                            doc.text(types)
+            
+            # Self-closing tags demo
+            with doc.footer():
+                with doc.p():
+                    doc.text("Some self-closing tag examples:")
+                doc.br()  # Line break
+                doc.hr()  # Horizontal rule
+                doc.img(src="logo.png", alt="Logo", width="100")
     
     html = doc.render()
     print(html)
@@ -137,6 +242,7 @@ def main():
     print()
     
     demo_simple_page()
+    demo_tag_shortcuts()
     demo_complex_features()
     demo_data_generation()
     demo_document_reuse()

@@ -149,6 +149,67 @@ def test_convenience_function():
     print("✓ Convenience function test passed")
 
 
+def test_tag_shortcuts():
+    """Test that tag shortcuts work correctly."""
+    doc = Document()
+    
+    # Test common tag shortcuts
+    with doc.div(class_="container"):
+        with doc.h1(id="title"):
+            doc.text("Title")
+        with doc.p(class_="text"):
+            doc.text("Paragraph")
+        with doc.ul():
+            with doc.li():
+                doc.text("Item 1")
+            with doc.li():
+                doc.text("Item 2")
+        with doc.button(type="submit", disabled="true"):
+            doc.text("Submit")
+        # Test self-closing shortcuts
+        doc.br()
+        doc.hr()
+        doc.img(src="test.jpg", alt="Test")
+    
+    html = doc.render()
+    expected = ('<div class="container">'
+               '<h1 id="title">Title</h1>'
+               '<p class="text">Paragraph</p>'
+               '<ul><li>Item 1</li><li>Item 2</li></ul>'
+               '<button type="submit" disabled="true">Submit</button>'
+               '<br /><hr /><img src="test.jpg" alt="Test" />'
+               '</div>')
+    
+    assert html == expected, f"Expected: {expected}, Got: {html}"
+    print("✓ Tag shortcuts test passed")
+
+
+def test_shortcuts_equivalent_to_tag():
+    """Test that shortcuts produce identical output to tag() method."""
+    doc1 = Document()
+    doc2 = Document()
+    
+    # Using shortcuts
+    with doc1.div(class_="test"):
+        with doc1.h1():
+            doc1.text("Hello")
+        with doc1.p():
+            doc1.text("World")
+    
+    # Using tag() method
+    with doc2.tag("div", class_="test"):
+        with doc2.tag("h1"):
+            doc2.text("Hello")
+        with doc2.tag("p"):
+            doc2.text("World")
+    
+    html1 = doc1.render()
+    html2 = doc2.render()
+    
+    assert html1 == html2, f"Shortcut output differs from tag() output: {html1} != {html2}"
+    print("✓ Shortcuts equivalent to tag() test passed")
+
+
 def test_complex_nested_structure():
     """Test complex nested HTML structure similar to benchmark tests."""
     doc = Document()
@@ -199,6 +260,8 @@ def run_all_tests():
     test_attribute_name_conversion()
     test_document_reuse()
     test_convenience_function()
+    test_tag_shortcuts()
+    test_shortcuts_equivalent_to_tag()
     test_complex_nested_structure()
     
     print()

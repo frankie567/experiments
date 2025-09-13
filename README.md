@@ -14,4 +14,4 @@ Deep performance analysis of [tagflow](https://github.com/lessrest/tagflow) bott
 
 ### [tagflow-reimplementation](./tagflow-reimplementation/)
 
-A minimal, efficient reimplementation of Tagflow from scratch that keeps the nice context manager syntax while focusing on performance. Achieves **10.79x faster** performance than original Tagflow through direct string building, explicit document objects (no globals/context vars), and minimal overhead design. Still 4.46x slower than Jinja2, but significantly closes the performance gap while maintaining the appealing programmatic API.
+A minimal, efficient reimplementation of Tagflow from scratch that keeps the nice context manager syntax while focusing on performance. Achieves **10.79x faster** performance than original Tagflow through direct string building, explicit document objects (no globals/context vars), and minimal overhead design. Includes convenient shortcuts for common HTML tags (`doc.div()`, `doc.h1()`, etc.). Still 4.46x slower than Jinja2, but significantly closes the performance gap while maintaining the appealing programmatic API.

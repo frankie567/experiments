@@ -12,6 +12,7 @@ Key features:
 - Full type annotations with modern Python syntax
 - Minimal overhead context managers
 - Proper HTML escaping and attribute handling
+- Shortcuts for common HTML tags (h1, div, p, etc.)
 """
 
 from __future__ import annotations
@@ -97,6 +98,9 @@ class Document:
     context managers, similar to the original Tagflow but with significant
     performance optimizations.
     
+    The Document class includes shortcuts for common HTML tags, allowing
+    for more concise and readable code.
+    
     Example:
         doc = Document()
         with doc.tag("html"):
@@ -104,8 +108,11 @@ class Document:
                 with doc.tag("title"):
                     doc.text("Hello World")
             with doc.tag("body"):
-                with doc.tag("h1", class_="title"):
+                with doc.h1(class_="title"):  # Shortcut for doc.tag("h1", ...)
                     doc.text("Welcome!")
+                with doc.div(class_="content"):
+                    with doc.p():
+                        doc.text("This is a paragraph.")
         
         html_output = doc.render()
     """
@@ -203,6 +210,168 @@ class Document:
     def __str__(self) -> str:
         """Return the rendered HTML when converting to string."""
         return self.render()
+    
+    # Shortcut methods for common HTML tags
+    
+    def div(self, **attrs: Any) -> _TagContext:
+        """Create a div tag. Shortcut for tag('div', **attrs)."""
+        return self.tag("div", **attrs)
+    
+    def p(self, **attrs: Any) -> _TagContext:
+        """Create a p tag. Shortcut for tag('p', **attrs)."""
+        return self.tag("p", **attrs)
+    
+    def span(self, **attrs: Any) -> _TagContext:
+        """Create a span tag. Shortcut for tag('span', **attrs)."""
+        return self.tag("span", **attrs)
+    
+    def h1(self, **attrs: Any) -> _TagContext:
+        """Create an h1 tag. Shortcut for tag('h1', **attrs)."""
+        return self.tag("h1", **attrs)
+    
+    def h2(self, **attrs: Any) -> _TagContext:
+        """Create an h2 tag. Shortcut for tag('h2', **attrs)."""
+        return self.tag("h2", **attrs)
+    
+    def h3(self, **attrs: Any) -> _TagContext:
+        """Create an h3 tag. Shortcut for tag('h3', **attrs)."""
+        return self.tag("h3", **attrs)
+    
+    def h4(self, **attrs: Any) -> _TagContext:
+        """Create an h4 tag. Shortcut for tag('h4', **attrs)."""
+        return self.tag("h4", **attrs)
+    
+    def h5(self, **attrs: Any) -> _TagContext:
+        """Create an h5 tag. Shortcut for tag('h5', **attrs)."""
+        return self.tag("h5", **attrs)
+    
+    def h6(self, **attrs: Any) -> _TagContext:
+        """Create an h6 tag. Shortcut for tag('h6', **attrs)."""
+        return self.tag("h6", **attrs)
+    
+    def a(self, **attrs: Any) -> _TagContext:
+        """Create an a tag. Shortcut for tag('a', **attrs)."""
+        return self.tag("a", **attrs)
+    
+    def button(self, **attrs: Any) -> _TagContext:
+        """Create a button tag. Shortcut for tag('button', **attrs)."""
+        return self.tag("button", **attrs)
+    
+    def form(self, **attrs: Any) -> _TagContext:
+        """Create a form tag. Shortcut for tag('form', **attrs)."""
+        return self.tag("form", **attrs)
+    
+    def input(self, **attrs: Any) -> _TagContext:
+        """Create an input tag. Shortcut for tag('input', **attrs)."""
+        return self.tag("input", **attrs)
+    
+    def label(self, **attrs: Any) -> _TagContext:
+        """Create a label tag. Shortcut for tag('label', **attrs)."""
+        return self.tag("label", **attrs)
+    
+    def select(self, **attrs: Any) -> _TagContext:
+        """Create a select tag. Shortcut for tag('select', **attrs)."""
+        return self.tag("select", **attrs)
+    
+    def option(self, **attrs: Any) -> _TagContext:
+        """Create an option tag. Shortcut for tag('option', **attrs)."""
+        return self.tag("option", **attrs)
+    
+    def textarea(self, **attrs: Any) -> _TagContext:
+        """Create a textarea tag. Shortcut for tag('textarea', **attrs)."""
+        return self.tag("textarea", **attrs)
+    
+    def ul(self, **attrs: Any) -> _TagContext:
+        """Create a ul tag. Shortcut for tag('ul', **attrs)."""
+        return self.tag("ul", **attrs)
+    
+    def ol(self, **attrs: Any) -> _TagContext:
+        """Create an ol tag. Shortcut for tag('ol', **attrs)."""
+        return self.tag("ol", **attrs)
+    
+    def li(self, **attrs: Any) -> _TagContext:
+        """Create a li tag. Shortcut for tag('li', **attrs)."""
+        return self.tag("li", **attrs)
+    
+    def table(self, **attrs: Any) -> _TagContext:
+        """Create a table tag. Shortcut for tag('table', **attrs)."""
+        return self.tag("table", **attrs)
+    
+    def thead(self, **attrs: Any) -> _TagContext:
+        """Create a thead tag. Shortcut for tag('thead', **attrs)."""
+        return self.tag("thead", **attrs)
+    
+    def tbody(self, **attrs: Any) -> _TagContext:
+        """Create a tbody tag. Shortcut for tag('tbody', **attrs)."""
+        return self.tag("tbody", **attrs)
+    
+    def tr(self, **attrs: Any) -> _TagContext:
+        """Create a tr tag. Shortcut for tag('tr', **attrs)."""
+        return self.tag("tr", **attrs)
+    
+    def td(self, **attrs: Any) -> _TagContext:
+        """Create a td tag. Shortcut for tag('td', **attrs)."""
+        return self.tag("td", **attrs)
+    
+    def th(self, **attrs: Any) -> _TagContext:
+        """Create a th tag. Shortcut for tag('th', **attrs)."""
+        return self.tag("th", **attrs)
+    
+    def section(self, **attrs: Any) -> _TagContext:
+        """Create a section tag. Shortcut for tag('section', **attrs)."""
+        return self.tag("section", **attrs)
+    
+    def article(self, **attrs: Any) -> _TagContext:
+        """Create an article tag. Shortcut for tag('article', **attrs)."""
+        return self.tag("article", **attrs)
+    
+    def header(self, **attrs: Any) -> _TagContext:
+        """Create a header tag. Shortcut for tag('header', **attrs)."""
+        return self.tag("header", **attrs)
+    
+    def footer(self, **attrs: Any) -> _TagContext:
+        """Create a footer tag. Shortcut for tag('footer', **attrs)."""
+        return self.tag("footer", **attrs)
+    
+    def nav(self, **attrs: Any) -> _TagContext:
+        """Create a nav tag. Shortcut for tag('nav', **attrs)."""
+        return self.tag("nav", **attrs)
+    
+    def main(self, **attrs: Any) -> _TagContext:
+        """Create a main tag. Shortcut for tag('main', **attrs)."""
+        return self.tag("main", **attrs)
+    
+    def aside(self, **attrs: Any) -> _TagContext:
+        """Create an aside tag. Shortcut for tag('aside', **attrs)."""
+        return self.tag("aside", **attrs)
+    
+    def strong(self, **attrs: Any) -> _TagContext:
+        """Create a strong tag. Shortcut for tag('strong', **attrs)."""
+        return self.tag("strong", **attrs)
+    
+    def em(self, **attrs: Any) -> _TagContext:
+        """Create an em tag. Shortcut for tag('em', **attrs)."""
+        return self.tag("em", **attrs)
+    
+    def code(self, **attrs: Any) -> _TagContext:
+        """Create a code tag. Shortcut for tag('code', **attrs)."""
+        return self.tag("code", **attrs)
+    
+    def pre(self, **attrs: Any) -> _TagContext:
+        """Create a pre tag. Shortcut for tag('pre', **attrs)."""
+        return self.tag("pre", **attrs)
+    
+    def img(self, **attrs: Any) -> _TagContext:
+        """Create an img tag. Shortcut for tag('img', **attrs)."""
+        return self.tag("img", **attrs)
+    
+    def br(self, **attrs: Any) -> _TagContext:
+        """Create a br tag. Shortcut for tag('br', **attrs)."""
+        return self.tag("br", **attrs)
+    
+    def hr(self, **attrs: Any) -> _TagContext:
+        """Create an hr tag. Shortcut for tag('hr', **attrs)."""
+        return self.tag("hr", **attrs)
 
 
 # Convenience function for creating documents

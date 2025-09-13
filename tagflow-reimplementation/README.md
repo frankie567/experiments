@@ -42,6 +42,30 @@ with doc.tag("html", lang="en"):
 html = doc.render()
 ```
 
+### Tag Shortcuts
+
+For convenience, the library includes shortcut methods for common HTML tags:
+
+```python
+# Instead of writing:
+with doc.tag("div", class_="container"):
+    with doc.tag("h1"):
+        doc.text("Title")
+    with doc.tag("p"):
+        doc.text("Content")
+
+# You can use shortcuts:
+with doc.div(class_="container"):
+    with doc.h1():
+        doc.text("Title")
+    with doc.p():
+        doc.text("Content")
+```
+
+**Available shortcuts**: `div`, `p`, `span`, `h1`-`h6`, `a`, `button`, `form`, `input`, `label`, `select`, `option`, `textarea`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `td`, `th`, `section`, `article`, `header`, `footer`, `nav`, `main`, `aside`, `strong`, `em`, `code`, `pre`, `img`, `br`, `hr`
+
+The shortcuts are equivalent to calling `doc.tag(tagname, **attrs)` and maintain the same performance characteristics.
+
 ## Performance Goals
 
 Based on previous experiments, original Tagflow was 14.55x slower than Jinja2. This reimplementation aims to:
