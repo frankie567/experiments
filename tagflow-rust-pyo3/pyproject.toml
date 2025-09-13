@@ -1,0 +1,41 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "tagflow-rust-pyo3"
+version = "0.1.0"
+description = "High-performance Tagflow implementation using Rust and PyO3"
+authors = [
+    {name = "Copilot", email = "copilot@github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+dependencies = [
+    # For benchmarking comparisons
+    "tagflow>=0.1.0",
+    "jinja2>=3.0.0",
+    "memory-profiler>=0.60.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "maturin>=1.0.0",
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "tagflow_rust._tagflow_rust"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
