@@ -15,7 +15,6 @@ const MARGIN_RIGHT: f64 = 25.0;
 
 // Text dimensions and positions in mm
 const TEXT_WIDTH: f64 = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-const TEXT_HEIGHT: f64 = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM;
 
 // Font sizes (in points, converted to mm for printpdf)
 const FONT_SIZE_H1: f64 = 18.0;

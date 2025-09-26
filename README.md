@@ -1,8 +1,12 @@
 # Experiments
 
-This repository contains various experiments, prototypes and ideas I want to explore in Python, mostly co-developed with GitHub Copilot.
+This repository contains various experiments, prototypes and ideas I want to explore, mostly co-developed with GitHub Copilot.
 
 ## List
+
+### [markdown-to-pdf-rust](./markdown-to-pdf-rust/)
+
+A CLI tool built in Rust that converts Markdown files to beautifully formatted PDF documents with LaTeX-like typography. Features direct PDF generation (no HTML intermediate), professional typography using Times Roman fonts, intelligent page breaks with numbering, and support for all standard Markdown elements including code blocks, lists, and formatting. Built for portability and performance using `pulldown-cmark` for parsing and `printpdf` for PDF generation.
 
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
