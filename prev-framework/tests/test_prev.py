@@ -177,8 +177,8 @@ def test_prev_path_parameters() -> None:
         
         # Create a route with path parameter
         (base / "users").mkdir()
-        (base / "users" / "[id]").mkdir()
-        (base / "users" / "[id]" / "route.py").write_text(
+        (base / "users" / "{id}").mkdir()
+        (base / "users" / "{id}" / "route.py").write_text(
             "from starlette.requests import Request\n"
             "from prev.html import Document\n"
             "def route(request: Request, id: str, html: Document):\n"
@@ -194,3 +194,30 @@ def test_prev_path_parameters() -> None:
         response = client.get("/users/123")
         assert response.status_code == 200
         assert b"User ID: 123" in response.content
+
+
+def test_prev_path_parameters_with_converter() -> None:
+    """Test Prev with path parameters using converters."""
+    with TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        
+        # Create a route with path parameter and int converter
+        (base / "posts").mkdir()
+        (base / "posts" / "{id:int}").mkdir()
+        (base / "posts" / "{id:int}" / "route.py").write_text(
+            "from starlette.requests import Request\n"
+            "from prev.html import Document\n"
+            "def route(request: Request, id: int, html: Document):\n"
+            "    with html.tag('html'):\n"
+            "        with html.tag('body'):\n"
+            "            with html.h1():\n"
+            "                html.text(f'Post ID: {id} (type: {type(id).__name__})')\n"
+        )
+        
+        app = Prev(app_dir=base)
+        client = TestClient(app)
+        
+        response = client.get("/posts/456")
+        assert response.status_code == 200
+        assert b"Post ID: 456" in response.content
+        assert b"type: int" in response.content

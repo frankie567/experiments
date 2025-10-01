@@ -126,8 +126,9 @@ def _load_route_function(route_file: Path) -> Callable[..., Any] | None:
 def _path_to_route(route_file: Path, base_path: Path) -> str:
     """Convert a file path to a URL route with support for path parameters.
     
-    Directories with names in brackets (e.g., [id]) are converted to path
-    parameters using Starlette's syntax {id}.
+    Directories with names in curly braces (e.g., {id}, {id:int}) are used
+    directly as path parameters in Starlette's syntax. This supports convertors
+    like {id:int}, {path:path}, etc.
     
     Args:
         route_file: Path to the route.py file
@@ -140,8 +141,11 @@ def _path_to_route(route_file: Path, base_path: Path) -> str:
         _path_to_route(Path("app/dashboard/users/route.py"), Path("app"))
         -> "/dashboard/users"
         
-        _path_to_route(Path("app/users/[id]/route.py"), Path("app"))
+        _path_to_route(Path("app/users/{id}/route.py"), Path("app"))
         -> "/users/{id}"
+        
+        _path_to_route(Path("app/posts/{id:int}/route.py"), Path("app"))
+        -> "/posts/{id:int}"
     """
     # Get the relative path from base to the route file's parent
     relative_path = route_file.parent.relative_to(base_path)
@@ -154,9 +158,8 @@ def _path_to_route(route_file: Path, base_path: Path) -> str:
         # Convert path separators to URL separators
         path_str = str(relative_path).replace("\\", "/")
         
-        # Convert bracket syntax to Starlette path parameters
-        # [id] -> {id}, [user_id] -> {user_id}, etc.
-        path_str = re.sub(r'\[([^\]]+)\]', r'{\1}', path_str)
+        # Path parameters in directory names are already in {param} or {param:converter} format
+        # No transformation needed - they pass through directly to Starlette
         
         return "/" + path_str
 

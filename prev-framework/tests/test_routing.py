@@ -37,16 +37,25 @@ def test_path_to_route_single_level() -> None:
 
 def test_path_to_route_with_path_parameter() -> None:
     """Test converting route with path parameter."""
-    route_file = Path("app/users/[id]/route.py")
+    route_file = Path("app/users/{id}/route.py")
     base_path = Path("app")
     
     url = _path_to_route(route_file, base_path)
     assert url == "/users/{id}"
 
 
+def test_path_to_route_with_converter() -> None:
+    """Test converting route with path parameter and converter."""
+    route_file = Path("app/posts/{id:int}/route.py")
+    base_path = Path("app")
+    
+    url = _path_to_route(route_file, base_path)
+    assert url == "/posts/{id:int}"
+
+
 def test_path_to_route_with_multiple_path_parameters() -> None:
     """Test converting route with multiple path parameters."""
-    route_file = Path("app/posts/[post_id]/comments/[comment_id]/route.py")
+    route_file = Path("app/posts/{post_id}/comments/{comment_id}/route.py")
     base_path = Path("app")
     
     url = _path_to_route(route_file, base_path)

@@ -5,7 +5,7 @@ A file-system based routing web framework for Python, inspired by Next.js but fu
 ## Features
 
 - **File-system based routing**: Create routes by creating directories and `route.py` files
-- **Path parameters**: Support for dynamic route segments using bracket syntax `[id]`
+- **Path parameters**: Support for dynamic route segments using curly brace syntax `{id}` with Starlette converters
 - **Automatic Document injection**: Framework manages Document lifecycle via function signature analysis
 - **First-class HTML templates**: Use a clean context manager syntax for building HTML
 - **Built on Starlette**: Production-ready ASGI framework with async support
@@ -29,8 +29,11 @@ app/
         route.py            # Dashboard route: /dashboard
         users/
             route.py        # Users route: /dashboard/users
-            [id]/
+            {id}/
                 route.py    # User detail: /dashboard/users/{id}
+    posts/
+        {id:int}/
+            route.py        # Post with int converter: /posts/{id:int}
 ```
 
 2. Define a route in `app/route.py` with automatic Document injection:
@@ -48,7 +51,7 @@ def route(request: Request, html: Document):
     # No return needed - html is automatically returned as DocumentResponse
 ```
 
-3. Route with path parameters in `app/users/[id]/route.py`:
+3. Route with path parameters in `app/users/{id}/route.py`:
 
 ```python
 from starlette.requests import Request
@@ -63,7 +66,21 @@ def route(request: Request, id: str, html: Document):
     # Framework automatically returns html as DocumentResponse
 ```
 
-4. Create your app in `main.py`:
+4. Route with converter in `app/posts/{id:int}/route.py`:
+
+```python
+from starlette.requests import Request
+from prev.html import Document
+
+def route(request: Request, id: int, html: Document):
+    """Handle GET request with int converter."""
+    with html.tag("html"):
+        with html.tag("body"):
+            with html.h1():
+                html.text(f"Post ID: {id} (type: {type(id).__name__})")
+```
+
+5. Create your app in `main.py`:
 
 ```python
 from prev import Prev
@@ -71,7 +88,7 @@ from prev import Prev
 app = Prev()
 ```
 
-5. Run with uvicorn:
+6. Run with uvicorn:
 
 ```bash
 uvicorn main:app --reload

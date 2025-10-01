@@ -30,6 +30,7 @@ def route(request: Request, html: Document):
                         with html.a(href="/dashboard/users"):
                             html.text("Users")
                     with html.li():
-                        with html.a(href="/users/123"):
-                            html.text("User Detail (ID: 123)")
+                        with html.a(href="/users/1"):
+                            html.text("User Detail (ID: 1)")
+
 
