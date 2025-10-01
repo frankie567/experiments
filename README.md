@@ -4,6 +4,10 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+### [prev-framework](./prev-framework/)
+
+A file-system based routing web framework for Python, inspired by Next.js but fully server-side. Built on Starlette with first-class HTML template support using tagflow-inspired syntax. Create routes by simply creating directories and `route.py` files - the framework automatically discovers them and maps them to URLs. Features full type annotations, zero JavaScript, and a clean context manager API for building HTML. Example: `app/dashboard/users/route.py` automatically becomes the `/dashboard/users` route.
+
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
 Performance benchmark comparing [tagflow](https://github.com/lessrest/tagflow) and [Jinja2](https://jinja.palletsprojects.com/en/stable/) for HTML generation. Tests various scenarios including simple pages, complex nested structures, and data tables. Results show Jinja2 with proper Environment setup is significantly faster across all scenarios.
