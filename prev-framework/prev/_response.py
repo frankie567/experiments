@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from starlette.responses import Response
 
-from ._tagflow import Document
+from .html import Document
 
 __all__ = ["DocumentResponse"]
 

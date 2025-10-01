@@ -1,6 +1,6 @@
 """Tests for the Document HTML builder."""
 
-from prev._tagflow import Document
+from prev.html import Document
 
 
 def test_simple_document() -> None:

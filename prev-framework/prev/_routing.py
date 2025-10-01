@@ -6,12 +6,72 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Generator
 
+from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import Route
 
-__all__ = ["discover_routes"]
+from ._response import DocumentResponse
+from .html import Document
+
+__all__ = ["discover_routes", "route_handler"]
+
+
+def route_handler(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrapper for route functions that supports generator-based Document building.
+    
+    This decorator allows route functions to yield Document objects directly,
+    making the API more convenient:
+    
+    Example:
+        def route(request):
+            doc = Document()
+            with doc.tag("html"):
+                with doc.tag("body"):
+                    with doc.h1():
+                        doc.text("Hello")
+            yield doc
+    
+    Args:
+        func: The route function to wrap
+        
+    Returns:
+        Wrapped function that returns a Response
+    """
+    async def async_wrapper(request: Request) -> Response:
+        # Extract path parameters from request
+        path_params = request.path_params
+        
+        # Call the route function with request and path parameters
+        if inspect.iscoroutinefunction(func):
+            result = await func(request, **path_params)
+        else:
+            result = func(request, **path_params)
+        
+        # Check if it's a generator
+        if inspect.isgenerator(result):
+            # Get the Document from the generator
+            doc = next(result)
+            if isinstance(doc, Document):
+                return DocumentResponse(doc)
+            # If it's not a Document, assume it's a Response
+            return doc  # type: ignore[no-any-return]
+        
+        # If it's already a Response, return it
+        if isinstance(result, Response):
+            return result
+        
+        # If it's a Document, wrap it in DocumentResponse
+        if isinstance(result, Document):
+            return DocumentResponse(result)
+        
+        # Otherwise, return as-is (might be a Response subclass)
+        return result  # type: ignore[no-any-return]
+    
+    return async_wrapper
 
 
 def _load_route_function(route_file: Path) -> Callable[..., Any] | None:
@@ -41,7 +101,10 @@ def _load_route_function(route_file: Path) -> Callable[..., Any] | None:
 
 
 def _path_to_route(route_file: Path, base_path: Path) -> str:
-    """Convert a file path to a URL route.
+    """Convert a file path to a URL route with support for path parameters.
+    
+    Directories with names in brackets (e.g., [id]) are converted to path
+    parameters using Starlette's syntax {id}.
     
     Args:
         route_file: Path to the route.py file
@@ -53,6 +116,9 @@ def _path_to_route(route_file: Path, base_path: Path) -> str:
     Example:
         _path_to_route(Path("app/dashboard/users/route.py"), Path("app"))
         -> "/dashboard/users"
+        
+        _path_to_route(Path("app/users/[id]/route.py"), Path("app"))
+        -> "/users/{id}"
     """
     # Get the relative path from base to the route file's parent
     relative_path = route_file.parent.relative_to(base_path)
@@ -63,7 +129,13 @@ def _path_to_route(route_file: Path, base_path: Path) -> str:
         return "/"
     else:
         # Convert path separators to URL separators
-        return "/" + str(relative_path).replace("\\", "/")
+        path_str = str(relative_path).replace("\\", "/")
+        
+        # Convert bracket syntax to Starlette path parameters
+        # [id] -> {id}, [user_id] -> {user_id}, etc.
+        path_str = re.sub(r'\[([^\]]+)\]', r'{\1}', path_str)
+        
+        return "/" + path_str
 
 
 def discover_routes(base_path: Path) -> list[Route]:
@@ -72,6 +144,9 @@ def discover_routes(base_path: Path) -> list[Route]:
     This function walks through the directory tree starting from base_path
     and finds all route.py files. Each route.py file should define a `route`
     function that will be used as the route handler.
+    
+    Supports path parameters using bracket syntax: [id] in directory names
+    are converted to {id} path parameters.
     
     Args:
         base_path: Base directory to search for routes
@@ -86,6 +161,8 @@ def discover_routes(base_path: Path) -> list[Route]:
                 route.py          -> /dashboard
                 users/
                     route.py      -> /dashboard/users
+                    [id]/
+                        route.py  -> /dashboard/users/{id}
     """
     if not base_path.exists():
         raise ValueError(f"Routes directory does not exist: {base_path}")
@@ -104,12 +181,15 @@ def discover_routes(base_path: Path) -> list[Route]:
             # Skip files without a route function
             continue
         
+        # Wrap the route function to support generator-based routes
+        wrapped_func = route_handler(route_func)
+        
         # Convert file path to URL route
         url_path = _path_to_route(route_file, base_path)
         
         # Create Starlette route
         # For now, all routes are GET only as specified in requirements
-        route = Route(url_path, route_func, methods=["GET"])
+        route = Route(url_path, wrapped_func, methods=["GET"])
         routes.append(route)
     
     return routes

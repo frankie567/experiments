@@ -1,6 +1,7 @@
 """Tests for DocumentResponse."""
 
-from prev import Document, DocumentResponse
+from prev.html import Document
+from prev import DocumentResponse
 
 
 def test_document_response_basic() -> None:

@@ -5,7 +5,9 @@ A file-system based routing web framework for Python, inspired by Next.js but fu
 ## Features
 
 - **File-system based routing**: Create routes by creating directories and `route.py` files
-- **First-class HTML templates**: Use a clean context manager syntax for building HTML (powered by tagflow-inspired library)
+- **Path parameters**: Support for dynamic route segments using bracket syntax `[id]`
+- **Generator-based templates**: Yield Document objects directly for cleaner code
+- **First-class HTML templates**: Use a clean context manager syntax for building HTML
 - **Built on Starlette**: Production-ready ASGI framework with async support
 - **Full type annotations**: Complete type safety for better developer experience
 - **Zero JavaScript**: Pure Python, server-side rendering
@@ -27,15 +29,17 @@ app/
         route.py            # Dashboard route: /dashboard
         users/
             route.py        # Users route: /dashboard/users
+            [id]/
+                route.py    # User detail: /dashboard/users/{id}
 ```
 
-2. Define a route in `app/route.py`:
+2. Define a route in `app/route.py` using the generator syntax:
 
 ```python
 from starlette.requests import Request
-from prev import Document, DocumentResponse
+from prev.html import Document
 
-def route(request: Request) -> DocumentResponse:
+def route(request: Request):
     """Handle GET request for the root route."""
     doc = Document()
     
@@ -44,10 +48,28 @@ def route(request: Request) -> DocumentResponse:
             with doc.h1():
                 doc.text("Hello from Prev!")
     
-    return DocumentResponse(doc)
+    yield doc
 ```
 
-3. Create your app in `main.py`:
+3. Route with path parameters in `app/users/[id]/route.py`:
+
+```python
+from starlette.requests import Request
+from prev.html import Document
+
+def route(request: Request, id: str):
+    """Handle GET request for a specific user."""
+    doc = Document()
+    
+    with doc.tag("html"):
+        with doc.tag("body"):
+            with doc.h1():
+                doc.text(f"User ID: {id}")
+    
+    yield doc
+```
+
+4. Create your app in `main.py`:
 
 ```python
 from prev import Prev
@@ -55,7 +77,7 @@ from prev import Prev
 app = Prev()
 ```
 
-4. Run with uvicorn:
+5. Run with uvicorn:
 
 ```bash
 uvicorn main:app --reload
@@ -66,7 +88,7 @@ uvicorn main:app --reload
 The `Document` class provides a clean context manager syntax for building HTML:
 
 ```python
-from prev import Document
+from prev.html import Document
 
 doc = Document()
 

@@ -2,10 +2,10 @@
 
 from starlette.requests import Request
 
-from prev import Document, DocumentResponse
+from prev.html import Document
 
 
-def route(request: Request) -> DocumentResponse:
+def route(request: Request):
     """Handle GET request for the root route."""
     doc = Document()
     
@@ -31,5 +31,8 @@ def route(request: Request) -> DocumentResponse:
                     with doc.li():
                         with doc.a(href="/dashboard/users"):
                             doc.text("Users")
+                    with doc.li():
+                        with doc.a(href="/users/123"):
+                            doc.text("User Detail (ID: 123)")
     
-    return DocumentResponse(doc)
+    yield doc

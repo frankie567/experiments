@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Tagflow-inspired HTML generation library.
+HTML document builder for Prev framework.
 
 This module provides a clean context manager API for building HTML documents
-with focus on performance and simplicity. It's integrated into Prev framework
-but follows the same design as the tagflow-reimplementation experiment.
+with focus on performance and simplicity.
 """
 
 from __future__ import annotations

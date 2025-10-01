@@ -36,7 +36,8 @@ def test_prev_as_asgi_app() -> None:
         # Create a simple route
         (base / "route.py").write_text(
             "from starlette.requests import Request\n"
-            "from prev import Document, DocumentResponse\n"
+            "from prev.html import Document\n"
+            "from prev import DocumentResponse\n"
             "def route(request: Request) -> DocumentResponse:\n"
             "    doc = Document()\n"
             "    with doc.tag('html'):\n"
@@ -125,3 +126,57 @@ def test_prev_debug_mode() -> None:
         app = Prev(app_dir=base, debug=True)
         
         assert app.debug is True
+
+
+def test_prev_generator_route() -> None:
+    """Test Prev with generator-based route."""
+    with TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        
+        # Create a route using generator syntax
+        (base / "route.py").write_text(
+            "from starlette.requests import Request\n"
+            "from prev.html import Document\n"
+            "def route(request: Request):\n"
+            "    doc = Document()\n"
+            "    with doc.tag('html'):\n"
+            "        with doc.tag('body'):\n"
+            "            with doc.h1():\n"
+            "                doc.text('Generator Test')\n"
+            "    yield doc\n"
+        )
+        
+        app = Prev(app_dir=base)
+        client = TestClient(app)
+        
+        response = client.get("/")
+        assert response.status_code == 200
+        assert b"<h1>Generator Test</h1>" in response.content
+
+
+def test_prev_path_parameters() -> None:
+    """Test Prev with path parameters."""
+    with TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        
+        # Create a route with path parameter
+        (base / "users").mkdir()
+        (base / "users" / "[id]").mkdir()
+        (base / "users" / "[id]" / "route.py").write_text(
+            "from starlette.requests import Request\n"
+            "from prev.html import Document\n"
+            "def route(request: Request, id: str):\n"
+            "    doc = Document()\n"
+            "    with doc.tag('html'):\n"
+            "        with doc.tag('body'):\n"
+            "            with doc.h1():\n"
+            "                doc.text(f'User ID: {id}')\n"
+            "    yield doc\n"
+        )
+        
+        app = Prev(app_dir=base)
+        client = TestClient(app)
+        
+        response = client.get("/users/123")
+        assert response.status_code == 200
+        assert b"User ID: 123" in response.content

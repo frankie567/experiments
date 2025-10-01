@@ -14,9 +14,8 @@ from starlette.applications import Starlette
 
 from ._response import DocumentResponse
 from ._routing import discover_routes
-from ._tagflow import Document
 
-__all__ = ["Prev", "Document", "DocumentResponse"]
+__all__ = ["Prev", "DocumentResponse"]
 
 __version__ = "0.1.0"
 
