@@ -21,19 +21,21 @@ __all__ = ["discover_routes", "route_handler"]
 
 
 def route_handler(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Wrapper for route functions that supports generator-based Document building.
+    """Wrapper for route functions that manages Document lifecycle.
     
-    This decorator allows route functions to yield Document objects directly,
-    making the API more convenient:
+    This decorator analyzes the route function's signature and automatically
+    injects a Document instance if the function has an 'html' parameter
+    type-hinted as Document.
     
-    Example:
-        def route(request):
-            doc = Document()
-            with doc.tag("html"):
-                with doc.tag("body"):
-                    with doc.h1():
-                        doc.text("Hello")
-            yield doc
+    Example with html parameter (preferred):
+        def route(request: Request, html: Document):
+            with html.h1():
+                html.text("Hello")
+            # No return needed - html is automatically returned
+    
+    Example without html parameter (manual response):
+        def route(request: Request):
+            return Response("Hello", media_type="text/plain")
     
     Args:
         func: The route function to wrap
@@ -41,35 +43,56 @@ def route_handler(func: Callable[..., Any]) -> Callable[..., Any]:
     Returns:
         Wrapped function that returns a Response
     """
+    # Analyze the function signature once
+    sig = inspect.signature(func)
+    
+    # Check if function has 'html' parameter with Document type hint
+    has_html_param = False
+    if "html" in sig.parameters:
+        param = sig.parameters["html"]
+        # Check if it's type-hinted as Document
+        if param.annotation is Document or (
+            hasattr(param.annotation, "__origin__") and param.annotation.__origin__ is Document
+        ):
+            has_html_param = True
+    
     async def async_wrapper(request: Request) -> Response:
         # Extract path parameters from request
         path_params = request.path_params
         
-        # Call the route function with request and path parameters
-        if inspect.iscoroutinefunction(func):
-            result = await func(request, **path_params)
+        # Prepare function arguments
+        kwargs = {"request": request, **path_params}
+        
+        # If function expects html parameter, create and inject Document
+        if has_html_param:
+            doc = Document()
+            kwargs["html"] = doc
+            
+            # Call the route function
+            if inspect.iscoroutinefunction(func):
+                await func(**kwargs)
+            else:
+                func(**kwargs)
+            
+            # Return the document as response
+            return DocumentResponse(doc)
         else:
-            result = func(request, **path_params)
-        
-        # Check if it's a generator
-        if inspect.isgenerator(result):
-            # Get the Document from the generator
-            doc = next(result)
-            if isinstance(doc, Document):
-                return DocumentResponse(doc)
-            # If it's not a Document, assume it's a Response
-            return doc  # type: ignore[no-any-return]
-        
-        # If it's already a Response, return it
-        if isinstance(result, Response):
-            return result
-        
-        # If it's a Document, wrap it in DocumentResponse
-        if isinstance(result, Document):
-            return DocumentResponse(result)
-        
-        # Otherwise, return as-is (might be a Response subclass)
-        return result  # type: ignore[no-any-return]
+            # Call the route function without html parameter
+            if inspect.iscoroutinefunction(func):
+                result = await func(**kwargs)
+            else:
+                result = func(**kwargs)
+            
+            # Return the result (should be a Response)
+            if isinstance(result, Response):
+                return result
+            
+            # If it's a Document, wrap it in DocumentResponse
+            if isinstance(result, Document):
+                return DocumentResponse(result)
+            
+            # Otherwise, return as-is
+            return result  # type: ignore[no-any-return]
     
     return async_wrapper
 

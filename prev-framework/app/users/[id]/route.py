@@ -5,15 +5,14 @@ from starlette.requests import Request
 from prev.html import Document
 
 
-def route(request: Request, id: str):
+def route(request: Request, id: str, html: Document):
     """Handle GET request for a specific user.
     
     Args:
         request: The Starlette request
         id: User ID from the URL path parameter
+        html: Document instance automatically injected by the framework
     """
-    doc = Document()
-    
     # Sample user data (in real app, would fetch from database)
     users = {
         "1": {"id": 1, "name": "Alice Johnson", "role": "Admin", "email": "alice@example.com"},
@@ -23,47 +22,46 @@ def route(request: Request, id: str):
     
     user = users.get(id)
     
-    with doc.tag("html", lang="en"):
-        with doc.tag("head"):
-            with doc.tag("title"):
+    with html.tag("html", lang="en"):
+        with html.tag("head"):
+            with html.tag("title"):
                 if user:
-                    doc.text(f"{user['name']} - User Detail - Prev")
+                    html.text(f"{user['name']} - User Detail - Prev")
                 else:
-                    doc.text("User Not Found - Prev")
-            with doc.tag("meta", charset="utf-8"):
+                    html.text("User Not Found - Prev")
+            with html.tag("meta", charset="utf-8"):
                 pass
-        with doc.tag("body"):
-            with doc.header():
-                with doc.h1():
+        with html.tag("body"):
+            with html.header():
+                with html.h1():
                     if user:
-                        doc.text(f"User: {user['name']}")
+                        html.text(f"User: {user['name']}")
                     else:
-                        doc.text("User Not Found")
-            with doc.main():
-                with doc.p():
-                    with doc.a(href="/dashboard/users"):
-                        doc.text("← Back to Users List")
+                        html.text("User Not Found")
+            with html.main():
+                with html.p():
+                    with html.a(href="/dashboard/users"):
+                        html.text("← Back to Users List")
                 
                 if user:
-                    with doc.div(class_="user-details"):
-                        with doc.p():
-                            with doc.strong():
-                                doc.text("ID: ")
-                            doc.text(str(user["id"]))
-                        with doc.p():
-                            with doc.strong():
-                                doc.text("Name: ")
-                            doc.text(user["name"])
-                        with doc.p():
-                            with doc.strong():
-                                doc.text("Role: ")
-                            doc.text(user["role"])
-                        with doc.p():
-                            with doc.strong():
-                                doc.text("Email: ")
-                            doc.text(user["email"])
+                    with html.div(class_="user-details"):
+                        with html.p():
+                            with html.strong():
+                                html.text("ID: ")
+                            html.text(str(user["id"]))
+                        with html.p():
+                            with html.strong():
+                                html.text("Name: ")
+                            html.text(user["name"])
+                        with html.p():
+                            with html.strong():
+                                html.text("Role: ")
+                            html.text(user["role"])
+                        with html.p():
+                            with html.strong():
+                                html.text("Email: ")
+                            html.text(user["email"])
                 else:
-                    with doc.p():
-                        doc.text(f"No user found with ID: {id}")
-    
-    yield doc
+                    with html.p():
+                        html.text(f"No user found with ID: {id}")
+

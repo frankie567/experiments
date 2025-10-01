@@ -6,7 +6,7 @@ A file-system based routing web framework for Python, inspired by Next.js but fu
 
 - **File-system based routing**: Create routes by creating directories and `route.py` files
 - **Path parameters**: Support for dynamic route segments using bracket syntax `[id]`
-- **Generator-based templates**: Yield Document objects directly for cleaner code
+- **Automatic Document injection**: Framework manages Document lifecycle via function signature analysis
 - **First-class HTML templates**: Use a clean context manager syntax for building HTML
 - **Built on Starlette**: Production-ready ASGI framework with async support
 - **Full type annotations**: Complete type safety for better developer experience
@@ -33,22 +33,19 @@ app/
                 route.py    # User detail: /dashboard/users/{id}
 ```
 
-2. Define a route in `app/route.py` using the generator syntax:
+2. Define a route in `app/route.py` with automatic Document injection:
 
 ```python
 from starlette.requests import Request
 from prev.html import Document
 
-def route(request: Request):
+def route(request: Request, html: Document):
     """Handle GET request for the root route."""
-    doc = Document()
-    
-    with doc.tag("html"):
-        with doc.tag("body"):
-            with doc.h1():
-                doc.text("Hello from Prev!")
-    
-    yield doc
+    with html.tag("html"):
+        with html.tag("body"):
+            with html.h1():
+                html.text("Hello from Prev!")
+    # No return needed - html is automatically returned as DocumentResponse
 ```
 
 3. Route with path parameters in `app/users/[id]/route.py`:
@@ -57,16 +54,13 @@ def route(request: Request):
 from starlette.requests import Request
 from prev.html import Document
 
-def route(request: Request, id: str):
+def route(request: Request, id: str, html: Document):
     """Handle GET request for a specific user."""
-    doc = Document()
-    
-    with doc.tag("html"):
-        with doc.tag("body"):
-            with doc.h1():
-                doc.text(f"User ID: {id}")
-    
-    yield doc
+    with html.tag("html"):
+        with html.tag("body"):
+            with html.h1():
+                html.text(f"User ID: {id}")
+    # Framework automatically returns html as DocumentResponse
 ```
 
 4. Create your app in `main.py`:
@@ -81,6 +75,35 @@ app = Prev()
 
 ```bash
 uvicorn main:app --reload
+```
+
+## Route Function Signatures
+
+Prev supports two approaches for defining routes:
+
+### 1. With `html` Parameter (Recommended)
+
+The framework analyzes your route function's signature. If it has an `html` parameter type-hinted as `Document`, the framework automatically:
+- Creates a `Document` instance
+- Injects it into your function
+- Returns it as a `DocumentResponse`
+
+```python
+def route(request: Request, html: Document):
+    with html.h1():
+        html.text("Hello")
+    # No return needed!
+```
+
+### 2. Manual Response (for custom responses)
+
+If your route doesn't have an `html` parameter, you can return any Response:
+
+```python
+from starlette.responses import JSONResponse
+
+def route(request: Request):
+    return JSONResponse({"message": "Hello"})
 ```
 
 ## Document API

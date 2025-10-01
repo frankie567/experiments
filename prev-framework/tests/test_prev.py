@@ -29,22 +29,19 @@ def test_prev_initialization_with_custom_dir() -> None:
 
 
 def test_prev_as_asgi_app() -> None:
-    """Test that Prev works as an ASGI application."""
+    """Test that Prev works as an ASGI application with html parameter."""
     with TemporaryDirectory() as tmpdir:
         base = Path(tmpdir)
         
-        # Create a simple route
+        # Create a simple route using html parameter
         (base / "route.py").write_text(
             "from starlette.requests import Request\n"
             "from prev.html import Document\n"
-            "from prev import DocumentResponse\n"
-            "def route(request: Request) -> DocumentResponse:\n"
-            "    doc = Document()\n"
-            "    with doc.tag('html'):\n"
-            "        with doc.tag('body'):\n"
-            "            with doc.h1():\n"
-            "                doc.text('Test')\n"
-            "    return DocumentResponse(doc)\n"
+            "def route(request: Request, html: Document):\n"
+            "    with html.tag('html'):\n"
+            "        with html.tag('body'):\n"
+            "            with html.h1():\n"
+            "                html.text('Test')\n"
         )
         
         app = Prev(app_dir=base)
@@ -128,22 +125,20 @@ def test_prev_debug_mode() -> None:
         assert app.debug is True
 
 
-def test_prev_generator_route() -> None:
-    """Test Prev with generator-based route."""
+def test_prev_with_html_parameter() -> None:
+    """Test Prev with html parameter injection."""
     with TemporaryDirectory() as tmpdir:
         base = Path(tmpdir)
         
-        # Create a route using generator syntax
+        # Create a route using html parameter
         (base / "route.py").write_text(
             "from starlette.requests import Request\n"
             "from prev.html import Document\n"
-            "def route(request: Request):\n"
-            "    doc = Document()\n"
-            "    with doc.tag('html'):\n"
-            "        with doc.tag('body'):\n"
-            "            with doc.h1():\n"
-            "                doc.text('Generator Test')\n"
-            "    yield doc\n"
+            "def route(request: Request, html: Document):\n"
+            "    with html.tag('html'):\n"
+            "        with html.tag('body'):\n"
+            "            with html.h1():\n"
+            "                html.text('HTML Parameter Test')\n"
         )
         
         app = Prev(app_dir=base)
@@ -151,11 +146,32 @@ def test_prev_generator_route() -> None:
         
         response = client.get("/")
         assert response.status_code == 200
-        assert b"<h1>Generator Test</h1>" in response.content
+        assert b"<h1>HTML Parameter Test</h1>" in response.content
+
+
+def test_prev_without_html_parameter() -> None:
+    """Test Prev route without html parameter (manual Response)."""
+    with TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        
+        # Create a route without html parameter
+        (base / "route.py").write_text(
+            "from starlette.requests import Request\n"
+            "from starlette.responses import Response\n"
+            "def route(request: Request):\n"
+            "    return Response('Manual Response', media_type='text/plain')\n"
+        )
+        
+        app = Prev(app_dir=base)
+        client = TestClient(app)
+        
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.text == "Manual Response"
 
 
 def test_prev_path_parameters() -> None:
-    """Test Prev with path parameters."""
+    """Test Prev with path parameters and html injection."""
     with TemporaryDirectory() as tmpdir:
         base = Path(tmpdir)
         
@@ -165,13 +181,11 @@ def test_prev_path_parameters() -> None:
         (base / "users" / "[id]" / "route.py").write_text(
             "from starlette.requests import Request\n"
             "from prev.html import Document\n"
-            "def route(request: Request, id: str):\n"
-            "    doc = Document()\n"
-            "    with doc.tag('html'):\n"
-            "        with doc.tag('body'):\n"
-            "            with doc.h1():\n"
-            "                doc.text(f'User ID: {id}')\n"
-            "    yield doc\n"
+            "def route(request: Request, id: str, html: Document):\n"
+            "    with html.tag('html'):\n"
+            "        with html.tag('body'):\n"
+            "            with html.h1():\n"
+            "                html.text(f'User ID: {id}')\n"
         )
         
         app = Prev(app_dir=base)

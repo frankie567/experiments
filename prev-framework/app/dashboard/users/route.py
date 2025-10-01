@@ -5,10 +5,8 @@ from starlette.requests import Request
 from prev.html import Document
 
 
-def route(request: Request):
+def route(request: Request, html: Document):
     """Handle GET request for the users route."""
-    doc = Document()
-    
     # Sample user data
     users = [
         {"id": 1, "name": "Alice Johnson", "role": "Admin"},
@@ -16,40 +14,39 @@ def route(request: Request):
         {"id": 3, "name": "Charlie Brown", "role": "Designer"},
     ]
     
-    with doc.tag("html", lang="en"):
-        with doc.tag("head"):
-            with doc.tag("title"):
-                doc.text("Users - Dashboard - Prev")
-            with doc.tag("meta", charset="utf-8"):
+    with html.tag("html", lang="en"):
+        with html.tag("head"):
+            with html.tag("title"):
+                html.text("Users - Dashboard - Prev")
+            with html.tag("meta", charset="utf-8"):
                 pass
-        with doc.tag("body"):
-            with doc.header():
-                with doc.h1():
-                    doc.text("User Management")
-            with doc.main():
-                with doc.p():
-                    with doc.a(href="/dashboard"):
-                        doc.text("← Back to Dashboard")
+        with html.tag("body"):
+            with html.header():
+                with html.h1():
+                    html.text("User Management")
+            with html.main():
+                with html.p():
+                    with html.a(href="/dashboard"):
+                        html.text("← Back to Dashboard")
                 
-                with doc.table():
-                    with doc.thead():
-                        with doc.tr():
-                            with doc.th():
-                                doc.text("ID")
-                            with doc.th():
-                                doc.text("Name")
-                            with doc.th():
-                                doc.text("Role")
+                with html.table():
+                    with html.thead():
+                        with html.tr():
+                            with html.th():
+                                html.text("ID")
+                            with html.th():
+                                html.text("Name")
+                            with html.th():
+                                html.text("Role")
                     
-                    with doc.tbody():
+                    with html.tbody():
                         for user in users:
-                            with doc.tr():
-                                with doc.td():
-                                    with doc.a(href=f"/users/{user['id']}"):
-                                        doc.text(str(user["id"]))
-                                with doc.td():
-                                    doc.text(user["name"])
-                                with doc.td():
-                                    doc.text(user["role"])
-    
-    yield doc
+                            with html.tr():
+                                with html.td():
+                                    with html.a(href=f"/users/{user['id']}"):
+                                        html.text(str(user["id"]))
+                                with html.td():
+                                    html.text(user["name"])
+                                with html.td():
+                                    html.text(user["role"])
+

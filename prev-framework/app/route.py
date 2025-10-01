@@ -5,34 +5,31 @@ from starlette.requests import Request
 from prev.html import Document
 
 
-def route(request: Request):
+def route(request: Request, html: Document):
     """Handle GET request for the root route."""
-    doc = Document()
-    
-    with doc.tag("html", lang="en"):
-        with doc.tag("head"):
-            with doc.tag("title"):
-                doc.text("Welcome to Prev")
-            with doc.tag("meta", charset="utf-8"):
+    with html.tag("html", lang="en"):
+        with html.tag("head"):
+            with html.tag("title"):
+                html.text("Welcome to Prev")
+            with html.tag("meta", charset="utf-8"):
                 pass
-        with doc.tag("body"):
-            with doc.header():
-                with doc.h1():
-                    doc.text("Welcome to Prev Framework")
-            with doc.main():
-                with doc.p():
-                    doc.text("This is a file-system based routing web framework.")
-                with doc.p():
-                    doc.text("Check out these routes:")
-                with doc.ul():
-                    with doc.li():
-                        with doc.a(href="/dashboard"):
-                            doc.text("Dashboard")
-                    with doc.li():
-                        with doc.a(href="/dashboard/users"):
-                            doc.text("Users")
-                    with doc.li():
-                        with doc.a(href="/users/123"):
-                            doc.text("User Detail (ID: 123)")
-    
-    yield doc
+        with html.tag("body"):
+            with html.header():
+                with html.h1():
+                    html.text("Welcome to Prev Framework")
+            with html.main():
+                with html.p():
+                    html.text("This is a file-system based routing web framework.")
+                with html.p():
+                    html.text("Check out these routes:")
+                with html.ul():
+                    with html.li():
+                        with html.a(href="/dashboard"):
+                            html.text("Dashboard")
+                    with html.li():
+                        with html.a(href="/dashboard/users"):
+                            html.text("Users")
+                    with html.li():
+                        with html.a(href="/users/123"):
+                            html.text("User Detail (ID: 123)")
+
