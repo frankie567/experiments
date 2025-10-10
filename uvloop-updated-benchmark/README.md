@@ -53,15 +53,33 @@ The benchmark reveals interesting results that differ from older uvloop benchmar
 - This is a surprising reversal from older benchmarks
 - Suggests Python 3.13 has significantly improved low-level socket operations
 
+| Message Size | asyncio (req/s) | uvloop (req/s) | Speedup |
+|--------------|-----------------|----------------|---------|
+| 1KB          | 21,041          | 13,854         | 0.66x   |
+| 10KB         | 17,564          | 13,009         | 0.74x   |
+| 100KB        | 9,601           | 6,751          | 0.70x   |
+
 **2. Streams Mode (asyncio.start_server):**
 - uvloop is **2.15-2.23x faster** than asyncio
 - Consistent with historical uvloop advantages
 - Shows uvloop still excels with high-level stream APIs
 
+| Message Size | asyncio (req/s) | uvloop (req/s) | Speedup |
+|--------------|-----------------|----------------|---------|
+| 1KB          | 15,477          | 34,462         | 2.23x   |
+| 10KB         | 13,889          | 29,883         | 2.15x   |
+| 100KB        | 7,176           | 15,523         | 2.16x   |
+
 **3. Protocol Mode (loop.create_server):**
 - uvloop is **2.10-2.37x faster** than asyncio
 - Similar performance gain as streams mode
 - Protocol-based servers benefit significantly from uvloop
+
+| Message Size | asyncio (req/s) | uvloop (req/s) | Speedup |
+|--------------|-----------------|----------------|---------|
+| 1KB          | 24,249          | 50,874         | 2.10x   |
+| 10KB         | 18,575          | 44,018         | 2.37x   |
+| 100KB        | 8,681           | 19,886         | 2.29x   |
 
 **Overall Performance:**
 - Average across all tests: uvloop is **1.68x faster** than asyncio
@@ -73,6 +91,16 @@ The benchmark reveals interesting results that differ from older uvloop benchmar
 These results suggest that **Python 3.13's asyncio improvements have been significant**, particularly for low-level socket operations. The built-in asyncio event loop now performs better than uvloop when using `sock_recv()` and `sock_sendall()` methods.
 
 However, uvloop still provides substantial benefits (2-2.4x faster) when using higher-level APIs like streams and protocols, which are more common in real-world applications.
+
+### Comparison to Historical uvloop Benchmarks
+
+According to uvloop's original benchmarks (from ~2016-2018), uvloop was **2-4x faster** than asyncio across all modes. Our Python 3.13 results show:
+
+- **Sockets mode**: uvloop is now **slower** than asyncio (0.66-0.74x) - a complete reversal!
+- **Streams mode**: uvloop maintains ~2.2x advantage (similar to historical results)
+- **Protocol mode**: uvloop maintains ~2.3x advantage (similar to historical results)
+
+This indicates that Python core team has made significant optimizations to asyncio, especially in low-level socket operations, narrowing the performance gap considerably.
 
 ### Recommendations
 
