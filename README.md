@@ -15,3 +15,7 @@ Deep performance analysis of [tagflow](https://github.com/lessrest/tagflow) bott
 ### [tagflow-reimplementation](./tagflow-reimplementation/)
 
 A minimal, efficient reimplementation of Tagflow from scratch that keeps the nice context manager syntax while focusing on performance. Achieves **10.79x faster** performance than original Tagflow through direct string building, explicit document objects (no globals/context vars), and minimal overhead design. Includes convenient shortcuts for common HTML tags (`doc.div()`, `doc.h1()`, etc.). Still 4.46x slower than Jinja2, but significantly closes the performance gap while maintaining the appealing programmatic API.
+
+### [uvloop-updated-benchmark](./uvloop-updated-benchmark/)
+
+Updated benchmark of [uvloop](https://github.com/MagicStack/uvloop) vs asyncio on Python 3.13. Tests echo server performance with sockets, streams, and protocol APIs. **Surprising findings**: Python 3.13's asyncio is now faster than uvloop for low-level socket operations (1.35-1.52x), while uvloop still excels with high-level streams/protocols (2.15-2.37x faster). Overall average: uvloop is 1.68x faster, but the gap has significantly narrowed compared to older Python versions.

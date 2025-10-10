@@ -1,0 +1,69 @@
+======================================================================
+uvloop vs asyncio Benchmark Results on Python 3.13
+======================================================================
+
+System Information:
+  Python version: 3.13.7
+  Platform: Linux-6.11.0-1018-azure-x86_64-with-glibc2.39
+  Processor: x86_64
+  Timestamp: 2025-10-10T12:53:24.731244
+
+
+======================================================================
+BENCHMARK RESULTS SUMMARY
+======================================================================
+
+
+SOCKETS Mode:
+----------------------------------------------------------------------
+Message Size    asyncio (req/s)      uvloop (req/s)       Speedup        
+----------------------------------------------------------------------
+1000                        21,041              13,854           0.66x
+10000                       17,564              13,009           0.74x
+100000                       9,601               6,751           0.70x
+
+STREAMS Mode:
+----------------------------------------------------------------------
+Message Size    asyncio (req/s)      uvloop (req/s)       Speedup        
+----------------------------------------------------------------------
+1000                        15,477              34,462           2.23x
+10000                       13,889              29,883           2.15x
+100000                       7,176              15,523           2.16x
+
+PROTOCOL Mode:
+----------------------------------------------------------------------
+Message Size    asyncio (req/s)      uvloop (req/s)       Speedup        
+----------------------------------------------------------------------
+1000                        24,249              50,874           2.10x
+10000                       18,575              44,018           2.37x
+100000                       8,681              19,886           2.29x
+
+======================================================================
+
+Overall average speedup: 1.68x
+asyncio average: 15,139 req/s
+uvloop average: 25,362 req/s
+
+
+======================================================================
+RAW DATA
+======================================================================
+
+{'loop': 'asyncio', 'mode': 'sockets', 'message_size': 1000, 'requests_per_sec': 21040.70077210364}
+{'loop': 'uvloop', 'mode': 'sockets', 'message_size': 1000, 'requests_per_sec': 13853.54379828007}
+{'loop': 'asyncio', 'mode': 'sockets', 'message_size': 10000, 'requests_per_sec': 17564.4916444893}
+{'loop': 'uvloop', 'mode': 'sockets', 'message_size': 10000, 'requests_per_sec': 13009.403301342949}
+{'loop': 'asyncio', 'mode': 'sockets', 'message_size': 100000, 'requests_per_sec': 9600.506130198362}
+{'loop': 'uvloop', 'mode': 'sockets', 'message_size': 100000, 'requests_per_sec': 6751.402194701273}
+{'loop': 'asyncio', 'mode': 'streams', 'message_size': 1000, 'requests_per_sec': 15477.493484628336}
+{'loop': 'uvloop', 'mode': 'streams', 'message_size': 1000, 'requests_per_sec': 34461.67841680359}
+{'loop': 'asyncio', 'mode': 'streams', 'message_size': 10000, 'requests_per_sec': 13888.660377516142}
+{'loop': 'uvloop', 'mode': 'streams', 'message_size': 10000, 'requests_per_sec': 29883.15989872761}
+{'loop': 'asyncio', 'mode': 'streams', 'message_size': 100000, 'requests_per_sec': 7176.086687003446}
+{'loop': 'uvloop', 'mode': 'streams', 'message_size': 100000, 'requests_per_sec': 15522.520141637726}
+{'loop': 'asyncio', 'mode': 'protocol', 'message_size': 1000, 'requests_per_sec': 24249.111556675885}
+{'loop': 'uvloop', 'mode': 'protocol', 'message_size': 1000, 'requests_per_sec': 50873.85956023864}
+{'loop': 'asyncio', 'mode': 'protocol', 'message_size': 10000, 'requests_per_sec': 18575.252656867982}
+{'loop': 'uvloop', 'mode': 'protocol', 'message_size': 10000, 'requests_per_sec': 44018.3866118241}
+{'loop': 'asyncio', 'mode': 'protocol', 'message_size': 100000, 'requests_per_sec': 8680.75085743107}
+{'loop': 'uvloop', 'mode': 'protocol', 'message_size': 100000, 'requests_per_sec': 19885.76957549851}
