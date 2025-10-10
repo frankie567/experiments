@@ -44,6 +44,8 @@ uv run benchmark.py
 
 ## Results
 
+> 📊 **TL;DR**: See [SUMMARY.md](SUMMARY.md) for a quick executive summary of the findings.
+
 ### Key Findings on Python 3.13.7
 
 The benchmark reveals interesting results that differ from older uvloop benchmarks:
@@ -117,3 +119,5 @@ See `benchmark_results.txt` for the complete results on Python 3.13.
 - `echoserver.py` - Echo server implementation (from uvloop examples)
 - `echoclient.py` - Echo client implementation (from uvloop examples)
 - `benchmark_results.txt` - Performance results
+- `SUMMARY.md` - Executive summary of key findings
+- `README.md` - This file
