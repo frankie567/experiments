@@ -46,8 +46,8 @@ async def example_core_usage():
     engine = create_async_engine("sqlite+aiosqlite:///./example.db", echo=False)
     
     # Create tables using the sync engine in a thread
-    import anyio
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     
     # Insert data using a connection with automatic transaction
     print("\nInserting products...")
@@ -73,14 +73,15 @@ async def example_core_usage():
     print("\nQuerying products...")
     async with engine.connect() as conn:
         result = await conn.execute(select(Product))
-        rows = await result.fetchall()
+        rows = result.fetchall()
         
         print(f"Found {len(rows)} products:")
         for row in rows:
             print(f"  - {row.name}: ${row.price/100:.2f}")
     
     # Clean up
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     
     print("\n✓ Core usage example complete")
@@ -96,8 +97,8 @@ async def example_orm_usage():
     engine = create_async_engine("sqlite+aiosqlite:///./example.db", echo=False)
     
     # Create tables
-    import anyio
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     
     # Create session factory
     async_session = AsyncSessionmaker(bind=engine)
@@ -119,7 +120,7 @@ async def example_orm_usage():
     print("\nQuerying products with ORM...")
     async with async_session() as session:
         result = await session.execute(select(Product).order_by(Product.price.desc()))
-        products = await (await result.scalars()).all()
+        products = result.scalars().all()
         
         print(f"Products ordered by price (descending):")
         for product in products:
@@ -136,7 +137,7 @@ async def example_orm_usage():
     print("\nUpdating product...")
     async with async_session.begin() as session:
         result = await session.execute(select(Product).where(Product.name == "Monitor"))
-        product = await (await result.scalars()).first()
+        product = result.scalars().first()
         
         if product:
             old_price = product.price
@@ -147,7 +148,7 @@ async def example_orm_usage():
     print("\nDeleting product...")
     async with async_session.begin() as session:
         result = await session.execute(select(Product).where(Product.name == "Webcam"))
-        product = await (await result.scalars()).first()
+        product = result.scalars().first()
         
         if product:
             await session.delete(product)
@@ -157,14 +158,15 @@ async def example_orm_usage():
     print("\nFinal product list...")
     async with async_session() as session:
         result = await session.execute(select(Product))
-        products = await (await result.scalars()).all()
+        products = result.scalars().all()
         
         print(f"Remaining products ({len(products)}):")
         for product in products:
             print(f"  - {product}")
     
     # Clean up
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     
     print("\n✓ ORM usage example complete")
@@ -178,8 +180,8 @@ async def example_transaction_management():
     
     engine = create_async_engine("sqlite+aiosqlite:///./example.db", echo=False)
     
-    import anyio
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     
     async_session = AsyncSessionmaker(bind=engine)
     
@@ -211,7 +213,7 @@ async def example_transaction_management():
     # Verify rollback
     async with async_session() as session:
         result = await session.execute(select(Product).where(Product.name == "Smartphone"))
-        products = await (await result.scalars()).all()
+        products = result.scalars().all()
         print(f"✓ Verified: Smartphone was NOT saved (found {len(products)} matches)")
     
     # Example 3: Manual commit/rollback
@@ -223,7 +225,8 @@ async def example_transaction_management():
         print("✓ Manually committed transaction")
     
     # Clean up
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     
     print("\n✓ Transaction management example complete")

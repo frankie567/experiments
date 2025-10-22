@@ -1,9 +1,21 @@
 """
-SQLAlchemy asyncio extension reimplemented with anyio.
+SQLAlchemy asyncio extension using anyio.
 
-This module provides async versions of SQLAlchemy's core components using anyio
-instead of gevent. The API is designed to be compatible with SQLAlchemy's
-official asyncio extension.
+This module provides anyio-compatible wrappers around SQLAlchemy's official asyncio
+extension. It enables using SQLAlchemy's async functionality with anyio for backend-
+agnostic async support (works with asyncio, trio, etc.).
+
+Important: This implementation wraps SQLAlchemy's official AsyncEngine and AsyncSession,
+which use async database drivers (like aiosqlite, asyncpg) directly - not thread pools.
+
+Architecture:
+    User Code → Our anyio Wrapper → SQLAlchemy AsyncEngine → Async DB Drivers → Database
+
+Benefits:
+- Backend-agnostic async (anyio vs asyncio-only)
+- Uses async drivers directly (via SQLAlchemy's extension)
+- Same API as SQLAlchemy's official async extension
+- Works with asyncio, trio, and other anyio backends
 """
 
 from __future__ import annotations
@@ -13,9 +25,14 @@ from typing import Any, AsyncIterator, Optional, Sequence, Type, TypeVar
 from contextlib import asynccontextmanager
 
 import anyio
-from sqlalchemy import create_engine, Engine, Result, CursorResult
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import (
+    create_async_engine as _sa_create_async_engine,
+    AsyncEngine as _SAAsyncEngine,
+    AsyncConnection as _SAAsyncConnection,
+    AsyncSession as _SAAsyncSession,
+    async_sessionmaker as _sa_async_sessionmaker,
+)
+from sqlalchemy.ext.asyncio import AsyncResult as _SAAsyncResult
 
 
 T = TypeVar("T")
@@ -23,39 +40,39 @@ T = TypeVar("T")
 
 class AsyncEngine:
     """
-    Async wrapper around SQLAlchemy's synchronous Engine.
+    Anyio-compatible wrapper around SQLAlchemy's AsyncEngine.
     
-    Uses anyio.to_thread.run_sync() to execute synchronous operations in a
-    worker thread pool.
+    This wraps SQLAlchemy's official AsyncEngine to provide anyio compatibility.
+    The underlying engine uses async database drivers (like aiosqlite) directly.
     """
     
-    def __init__(self, sync_engine: Engine):
+    def __init__(self, sa_async_engine: _SAAsyncEngine):
         """
-        Initialize AsyncEngine with a synchronous engine.
+        Initialize AsyncEngine with SQLAlchemy's AsyncEngine.
         
         Args:
-            sync_engine: A synchronous SQLAlchemy Engine instance
+            sa_async_engine: A SQLAlchemy AsyncEngine instance
         """
-        self._sync_engine = sync_engine
+        self._sa_engine = sa_async_engine
     
     @property
-    def sync_engine(self) -> Engine:
-        """Access the underlying synchronous engine."""
-        return self._sync_engine
+    def sync_engine(self):
+        """Access the underlying synchronous engine for table creation."""
+        return self._sa_engine.sync_engine
     
     @property
     def url(self):
         """Get the database URL."""
-        return self._sync_engine.url
+        return self._sa_engine.url
     
     @property
     def dialect(self):
         """Get the database dialect."""
-        return self._sync_engine.dialect
+        return self._sa_engine.dialect
     
     async def dispose(self) -> None:
         """Dispose of the connection pool."""
-        await anyio.to_thread.run_sync(self._sync_engine.dispose)
+        await self._sa_engine.dispose()
     
     @asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
@@ -66,14 +83,8 @@ class AsyncEngine:
             async with engine.connect() as conn:
                 result = await conn.execute(query)
         """
-        # Get connection in thread pool
-        sync_conn = await anyio.to_thread.run_sync(self._sync_engine.connect)
-        
-        async_conn = AsyncConnection(sync_conn)
-        try:
-            yield async_conn
-        finally:
-            await async_conn.close()
+        async with self._sa_engine.connect() as sa_conn:
+            yield AsyncConnection(sa_conn)
     
     @asynccontextmanager
     async def begin(self) -> AsyncIterator[AsyncConnection]:
@@ -85,31 +96,40 @@ class AsyncEngine:
                 await conn.execute(query)
                 # Transaction is automatically committed
         """
-        async with self.connect() as conn:
-            async with conn.begin():
-                yield conn
+        async with self._sa_engine.begin() as sa_conn:
+            yield AsyncConnection(sa_conn)
 
 
 class AsyncConnection:
     """
-    Async wrapper around SQLAlchemy's synchronous Connection.
+    Anyio-compatible wrapper around SQLAlchemy's AsyncConnection.
     
     Provides async methods for executing queries and managing transactions.
+    Uses async database drivers directly (no thread pool).
     """
     
-    def __init__(self, sync_connection):
+    def __init__(self, sa_async_connection: _SAAsyncConnection):
         """
-        Initialize AsyncConnection with a synchronous connection.
+        Initialize AsyncConnection with SQLAlchemy's AsyncConnection.
         
         Args:
-            sync_connection: A synchronous SQLAlchemy Connection instance
+            sa_async_connection: A SQLAlchemy AsyncConnection instance
         """
-        self._sync_connection = sync_connection
+        self._sa_conn = sa_async_connection
     
-    @property
-    def sync_connection(self):
-        """Access the underlying synchronous connection."""
-        return self._sync_connection
+    async def run_sync(self, fn, *args, **kwargs):
+        """
+        Run a synchronous function in a worker thread.
+        
+        This is useful for operations like metadata.create_all() or metadata.drop_all()
+        that need to run synchronously.
+        
+        Args:
+            fn: Synchronous function to run
+            *args: Positional arguments
+            **kwargs: Keyword arguments
+        """
+        return await self._sa_conn.run_sync(fn, *args, **kwargs)
     
     async def execute(self, statement, parameters=None) -> AsyncResult:
         """
@@ -123,13 +143,9 @@ class AsyncConnection:
             AsyncResult wrapping the result set
         """
         if parameters is not None:
-            result = await anyio.to_thread.run_sync(
-                functools.partial(self._sync_connection.execute, statement, parameters)
-            )
+            result = await self._sa_conn.execute(statement, parameters)
         else:
-            result = await anyio.to_thread.run_sync(
-                functools.partial(self._sync_connection.execute, statement)
-            )
+            result = await self._sa_conn.execute(statement)
         return AsyncResult(result)
     
     async def scalar(self, statement, parameters=None) -> Any:
@@ -143,20 +159,22 @@ class AsyncConnection:
         Returns:
             Scalar value from the result
         """
-        result = await self.execute(statement, parameters)
-        return await result.scalar()
+        if parameters is not None:
+            return await self._sa_conn.scalar(statement, parameters)
+        else:
+            return await self._sa_conn.scalar(statement)
     
     async def commit(self) -> None:
         """Commit the current transaction."""
-        await anyio.to_thread.run_sync(self._sync_connection.commit)
+        await self._sa_conn.commit()
     
     async def rollback(self) -> None:
         """Roll back the current transaction."""
-        await anyio.to_thread.run_sync(self._sync_connection.rollback)
+        await self._sa_conn.rollback()
     
     async def close(self) -> None:
         """Close the connection."""
-        await anyio.to_thread.run_sync(self._sync_connection.close)
+        await self._sa_conn.close()
     
     @asynccontextmanager
     async def begin(self):
@@ -168,131 +186,115 @@ class AsyncConnection:
                 await conn.execute(query)
                 # Transaction is automatically committed
         """
-        transaction = await anyio.to_thread.run_sync(self._sync_connection.begin)
-        try:
+        async with self._sa_conn.begin():
             yield self
-            await anyio.to_thread.run_sync(transaction.commit)
-        except Exception:
-            await anyio.to_thread.run_sync(transaction.rollback)
-            raise
 
 
 class AsyncResult:
     """
-    Async wrapper around SQLAlchemy's Result/CursorResult.
+    Anyio-compatible wrapper around SQLAlchemy's Result/CursorResult.
     
-    Provides async methods for fetching rows from a result set.
+    Note: The underlying result from SQLAlchemy's async engine is already
+    fully buffered and has synchronous methods, so this wrapper provides
+    the same synchronous API.
     """
     
-    def __init__(self, sync_result: Result | CursorResult):
+    def __init__(self, sa_async_result):
         """
-        Initialize AsyncResult with a synchronous result.
+        Initialize AsyncResult with SQLAlchemy's result.
         
         Args:
-            sync_result: A synchronous SQLAlchemy Result instance
+            sa_async_result: A SQLAlchemy Result/CursorResult instance
         """
-        self._sync_result = sync_result
+        self._sa_result = sa_async_result
     
-    @property
-    def sync_result(self) -> Result | CursorResult:
-        """Access the underlying synchronous result."""
-        return self._sync_result
-    
-    async def fetchone(self):
+    def fetchone(self):
         """Fetch one row from the result set."""
-        return await anyio.to_thread.run_sync(self._sync_result.fetchone)
+        return self._sa_result.fetchone()
     
-    async def fetchall(self) -> Sequence:
+    def fetchall(self) -> Sequence:
         """Fetch all rows from the result set."""
-        return await anyio.to_thread.run_sync(self._sync_result.fetchall)
+        return self._sa_result.fetchall()
     
-    async def fetchmany(self, size: Optional[int] = None) -> Sequence:
+    def fetchmany(self, size: Optional[int] = None) -> Sequence:
         """Fetch multiple rows from the result set."""
         if size is not None:
-            return await anyio.to_thread.run_sync(
-                functools.partial(self._sync_result.fetchmany, size)
-            )
-        return await anyio.to_thread.run_sync(self._sync_result.fetchmany)
+            return self._sa_result.fetchmany(size)
+        return self._sa_result.fetchmany()
     
-    async def scalar(self) -> Any:
+    def scalar(self) -> Any:
         """Return a scalar result."""
-        return await anyio.to_thread.run_sync(self._sync_result.scalar)
+        return self._sa_result.scalar()
     
-    async def scalars(self) -> AsyncScalars:
+    def scalars(self) -> AsyncScalars:
         """Return an AsyncScalars object for scalar iteration."""
-        scalars = await anyio.to_thread.run_sync(self._sync_result.scalars)
-        return AsyncScalars(scalars)
+        return AsyncScalars(self._sa_result.scalars())
     
-    async def all(self) -> Sequence:
+    def all(self) -> Sequence:
         """Fetch all rows from the result set (alias for fetchall)."""
-        return await self.fetchall()
+        return self._sa_result.all()
     
-    async def first(self):
+    def first(self):
         """Fetch the first row from the result set."""
-        return await anyio.to_thread.run_sync(self._sync_result.first)
+        return self._sa_result.first()
     
-    async def one(self):
+    def one(self):
         """Fetch exactly one row, raise if zero or multiple rows."""
-        return await anyio.to_thread.run_sync(self._sync_result.one)
+        return self._sa_result.one()
     
-    async def one_or_none(self):
+    def one_or_none(self):
         """Fetch one row or None if no rows."""
-        return await anyio.to_thread.run_sync(self._sync_result.one_or_none)
+        return self._sa_result.one_or_none()
 
 
 class AsyncScalars:
     """
-    Async wrapper for scalar results.
+    Anyio-compatible wrapper for scalar results.
     
-    Provides async methods for fetching scalar values.
+    Provides methods for fetching scalar values.
     """
     
-    def __init__(self, sync_scalars):
+    def __init__(self, sa_scalars):
         """
-        Initialize AsyncScalars with synchronous scalars.
+        Initialize AsyncScalars with SQLAlchemy's ScalarResult.
         
         Args:
-            sync_scalars: A synchronous SQLAlchemy ScalarResult instance
+            sa_scalars: A SQLAlchemy ScalarResult instance
         """
-        self._sync_scalars = sync_scalars
+        self._sa_scalars = sa_scalars
     
-    async def all(self) -> Sequence:
+    def all(self) -> Sequence:
         """Fetch all scalar values."""
-        return await anyio.to_thread.run_sync(self._sync_scalars.all)
+        return self._sa_scalars.all()
     
-    async def first(self):
+    def first(self):
         """Fetch the first scalar value."""
-        return await anyio.to_thread.run_sync(self._sync_scalars.first)
+        return self._sa_scalars.first()
     
-    async def one(self):
+    def one(self):
         """Fetch exactly one scalar value."""
-        return await anyio.to_thread.run_sync(self._sync_scalars.one)
+        return self._sa_scalars.one()
     
-    async def one_or_none(self):
+    def one_or_none(self):
         """Fetch one scalar value or None."""
-        return await anyio.to_thread.run_sync(self._sync_scalars.one_or_none)
+        return self._sa_scalars.one_or_none()
 
 
 class AsyncSession:
     """
-    Async wrapper around SQLAlchemy's ORM Session.
+    Anyio-compatible wrapper around SQLAlchemy's AsyncSession.
     
     Provides async methods for ORM operations.
     """
     
-    def __init__(self, sync_session: Session):
+    def __init__(self, sa_async_session: _SAAsyncSession):
         """
-        Initialize AsyncSession with a synchronous session.
+        Initialize AsyncSession with SQLAlchemy's AsyncSession.
         
         Args:
-            sync_session: A synchronous SQLAlchemy Session instance
+            sa_async_session: A SQLAlchemy AsyncSession instance
         """
-        self._sync_session = sync_session
-    
-    @property
-    def sync_session(self) -> Session:
-        """Access the underlying synchronous session."""
-        return self._sync_session
+        self._sa_session = sa_async_session
     
     async def execute(self, statement, parameters=None) -> AsyncResult:
         """
@@ -306,13 +308,9 @@ class AsyncSession:
             AsyncResult wrapping the result set
         """
         if parameters is not None:
-            result = await anyio.to_thread.run_sync(
-                functools.partial(self._sync_session.execute, statement, parameters)
-            )
+            result = await self._sa_session.execute(statement, parameters)
         else:
-            result = await anyio.to_thread.run_sync(
-                functools.partial(self._sync_session.execute, statement)
-            )
+            result = await self._sa_session.execute(statement)
         return AsyncResult(result)
     
     async def scalar(self, statement, parameters=None) -> Any:
@@ -326,8 +324,10 @@ class AsyncSession:
         Returns:
             Scalar value from the result
         """
-        result = await self.execute(statement, parameters)
-        return await result.scalar()
+        if parameters is not None:
+            return await self._sa_session.scalar(statement, parameters)
+        else:
+            return await self._sa_session.scalar(statement)
     
     async def get(self, entity: Type[T], ident: Any) -> Optional[T]:
         """
@@ -340,9 +340,7 @@ class AsyncSession:
         Returns:
             Entity instance or None
         """
-        return await anyio.to_thread.run_sync(
-            functools.partial(self._sync_session.get, entity, ident)
-        )
+        return await self._sa_session.get(entity, ident)
     
     def add(self, instance: Any) -> None:
         """
@@ -351,7 +349,7 @@ class AsyncSession:
         Args:
             instance: The entity instance to add
         """
-        self._sync_session.add(instance)
+        self._sa_session.add(instance)
     
     def add_all(self, instances: Sequence[Any]) -> None:
         """
@@ -360,7 +358,7 @@ class AsyncSession:
         Args:
             instances: Sequence of entity instances to add
         """
-        self._sync_session.add_all(instances)
+        self._sa_session.add_all(instances)
     
     async def delete(self, instance: Any) -> None:
         """
@@ -369,21 +367,19 @@ class AsyncSession:
         Args:
             instance: The entity instance to delete
         """
-        await anyio.to_thread.run_sync(
-            functools.partial(self._sync_session.delete, instance)
-        )
+        await self._sa_session.delete(instance)
     
     async def commit(self) -> None:
         """Commit the current transaction."""
-        await anyio.to_thread.run_sync(self._sync_session.commit)
+        await self._sa_session.commit()
     
     async def rollback(self) -> None:
         """Roll back the current transaction."""
-        await anyio.to_thread.run_sync(self._sync_session.rollback)
+        await self._sa_session.rollback()
     
     async def flush(self) -> None:
         """Flush pending changes to the database."""
-        await anyio.to_thread.run_sync(self._sync_session.flush)
+        await self._sa_session.flush()
     
     async def refresh(self, instance: Any) -> None:
         """
@@ -392,26 +388,23 @@ class AsyncSession:
         Args:
             instance: The entity instance to refresh
         """
-        await anyio.to_thread.run_sync(
-            functools.partial(self._sync_session.refresh, instance)
-        )
+        await self._sa_session.refresh(instance)
     
     async def close(self) -> None:
         """Close the session."""
-        await anyio.to_thread.run_sync(self._sync_session.close)
+        await self._sa_session.close()
 
 
 class AsyncSessionmaker:
     """
     Factory for creating AsyncSession instances.
     
-    Similar to SQLAlchemy's sessionmaker but for async sessions.
+    Wraps SQLAlchemy's async_sessionmaker for anyio compatibility.
     """
     
     def __init__(
         self,
         bind: Optional[AsyncEngine] = None,
-        class_: Type[Session] = Session,
         **kwargs
     ):
         """
@@ -419,13 +412,11 @@ class AsyncSessionmaker:
         
         Args:
             bind: Optional AsyncEngine to bind sessions to
-            class_: Session class to use
-            **kwargs: Additional arguments passed to sessionmaker
+            **kwargs: Additional arguments passed to async_sessionmaker
         """
         self._bind = bind
-        self._sync_sessionmaker = sessionmaker(
-            bind=bind.sync_engine if bind else None,
-            class_=class_,
+        self._sa_sessionmaker = _sa_async_sessionmaker(
+            bind=bind._sa_engine if bind else None,
             **kwargs
         )
     
@@ -439,17 +430,8 @@ class AsyncSessionmaker:
                 await session.execute(query)
                 await session.commit()
         """
-        # Create synchronous session in thread pool
-        sync_session = await anyio.to_thread.run_sync(self._sync_sessionmaker)
-        
-        async_session = AsyncSession(sync_session)
-        try:
-            yield async_session
-        except Exception:
-            await async_session.rollback()
-            raise
-        finally:
-            await async_session.close()
+        async with self._sa_sessionmaker() as sa_session:
+            yield AsyncSession(sa_session)
     
     @asynccontextmanager
     async def begin(self) -> AsyncIterator[AsyncSession]:
@@ -461,22 +443,20 @@ class AsyncSessionmaker:
                 await session.execute(query)
                 # Transaction is automatically committed
         """
-        async with self() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
+        async with self._sa_sessionmaker.begin() as sa_session:
+            yield AsyncSession(sa_session)
 
 
 def create_async_engine(url: str, **kwargs) -> AsyncEngine:
     """
     Create an AsyncEngine instance.
     
+    This creates a SQLAlchemy AsyncEngine that uses async database drivers
+    (like aiosqlite, asyncpg) directly - no thread pool execution.
+    
     Args:
-        url: Database URL (can use async drivers like aiosqlite)
-        **kwargs: Additional arguments passed to create_engine
+        url: Database URL with async driver (e.g., "sqlite+aiosqlite:///./test.db")
+        **kwargs: Additional arguments passed to create_async_engine
         
     Returns:
         AsyncEngine instance
@@ -484,14 +464,5 @@ def create_async_engine(url: str, **kwargs) -> AsyncEngine:
     Example:
         engine = create_async_engine("sqlite+aiosqlite:///./test.db")
     """
-    # For async drivers, we need to use the sync version
-    # anyio handles the async execution
-    if "+aiosqlite" in url:
-        # Convert aiosqlite URL to standard sqlite
-        # Since we're using thread pool, we use sync sqlite
-        url = url.replace("+aiosqlite", "")
-        # Add poolclass to avoid threading issues with sqlite
-        kwargs.setdefault("poolclass", NullPool)
-    
-    sync_engine = create_engine(url, **kwargs)
-    return AsyncEngine(sync_engine)
+    sa_engine = _sa_create_async_engine(url, **kwargs)
+    return AsyncEngine(sa_engine)

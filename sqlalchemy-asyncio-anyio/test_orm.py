@@ -5,7 +5,6 @@ Tests ORM operations using SQLAlchemy's declarative base and AsyncSession.
 """
 
 import asyncio
-import anyio
 from sqlalchemy import String, Integer, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -40,7 +39,8 @@ async def test_orm_operations():
     
     # Create tables
     print("\n1. Creating tables...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     print("✓ Tables created")
     
     # Create session factory
@@ -64,7 +64,7 @@ async def test_orm_operations():
     print("\n3. Querying all users...")
     async with async_session() as session:
         result = await session.execute(select(User))
-        users = await (await result.scalars()).all()
+        users = result.scalars().all()
         print(f"✓ Found {len(users)} users:")
         for user in users:
             print(f"  - {user}")
@@ -73,7 +73,7 @@ async def test_orm_operations():
     print("\n4. Querying specific user...")
     async with async_session() as session:
         result = await session.execute(select(User).where(User.name == "Alice"))
-        user = await (await result.scalars()).first()
+        user = result.scalars().first()
         if user:
             print(f"✓ Found user: {user}")
         else:
@@ -92,12 +92,14 @@ async def test_orm_operations():
     print("\n6. Updating user...")
     async with async_session() as session:
         result = await session.execute(select(User).where(User.name == "Alice"))
-        user = await (await result.scalars()).first()
+        user = result.scalars().first()
         
         if user:
             user.email = "alice.updated@example.com"
+            # Access attributes before commit to avoid lazy loading issues
+            user_id, user_name, user_email = user.id, user.name, user.email
             await session.commit()
-            print(f"✓ User updated: {user}")
+            print(f"✓ User updated: User(id={user_id}, name='{user_name}', email='{user_email}')")
         else:
             print("✗ User not found")
     
@@ -105,7 +107,7 @@ async def test_orm_operations():
     print("\n7. Verifying update...")
     async with async_session() as session:
         result = await session.execute(select(User).where(User.name == "Alice"))
-        user = await (await result.scalars()).first()
+        user = result.scalars().first()
         if user:
             print(f"✓ Email is now: {user.email}")
         else:
@@ -129,7 +131,7 @@ async def test_orm_operations():
     print("\n9. Deleting user...")
     async with async_session() as session:
         result = await session.execute(select(User).where(User.name == "Charlie"))
-        user = await (await result.scalars()).first()
+        user = result.scalars().first()
         
         if user:
             await session.delete(user)
@@ -142,7 +144,7 @@ async def test_orm_operations():
     print("\n10. Verifying deletion...")
     async with async_session() as session:
         result = await session.execute(select(User))
-        users = await (await result.scalars()).all()
+        users = result.scalars().all()
         print(f"✓ Remaining users: {len(users)}")
         for user in users:
             print(f"  - {user.name}")
@@ -155,7 +157,8 @@ async def test_orm_operations():
     
     # Cleanup
     print("\n12. Cleaning up...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     print("✓ Cleaned up")
     
@@ -174,7 +177,8 @@ async def test_session_rollback():
     
     # Create tables
     print("\n1. Creating tables...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     print("✓ Tables created")
     
     async_session = AsyncSessionmaker(bind=engine)
@@ -192,7 +196,7 @@ async def test_session_rollback():
     # Verify commit
     async with async_session() as session:
         result = await session.execute(select(User))
-        users = await (await result.scalars()).all()
+        users = result.scalars().all()
         print(f"✓ Found {len(users)} users after commit")
     
     # Test rollback
@@ -209,14 +213,15 @@ async def test_session_rollback():
     # Verify rollback
     async with async_session() as session:
         result = await session.execute(select(User))
-        users = await (await result.scalars()).all()
+        users = result.scalars().all()
         print(f"✓ Still have {len(users)} users (Charlie was rolled back)")
         for user in users:
             print(f"  - {user.name}")
     
     # Cleanup
     print("\n4. Cleaning up...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     print("✓ Cleaned up")
     
@@ -235,7 +240,8 @@ async def test_multiple_operations():
     
     # Create tables
     print("\n1. Creating tables...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.create_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     print("✓ Tables created")
     
     async_session = AsyncSessionmaker(bind=engine)
@@ -258,14 +264,14 @@ async def test_multiple_operations():
         
         # Query and modify
         result = await session.execute(select(User).where(User.name == "Alice"))
-        alice = await (await result.scalars()).first()
+        alice = result.scalars().first()
         if alice:
             alice.email = "alice.modified@example.com"
             print(f"✓ Modified Alice's email")
         
         # Query count
         result = await session.execute(select(User))
-        all_users = await (await result.scalars()).all()
+        all_users = result.scalars().all()
         print(f"✓ Total users in session: {len(all_users)}")
         
         # Transaction auto-commits here
@@ -276,14 +282,15 @@ async def test_multiple_operations():
     print("\n3. Verifying operations...")
     async with async_session() as session:
         result = await session.execute(select(User).order_by(User.id))
-        users = await (await result.scalars()).all()
+        users = result.scalars().all()
         print(f"✓ Total users in database: {len(users)}")
         for user in users:
             print(f"  - {user}")
     
     # Cleanup
     print("\n4. Cleaning up...")
-    await anyio.to_thread.run_sync(lambda: Base.metadata.drop_all(engine.sync_engine))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     print("✓ Cleaned up")
     

@@ -5,7 +5,6 @@ Tests basic CRUD operations using SQLAlchemy Core.
 """
 
 import asyncio
-import anyio
 from sqlalchemy import Table, Column, Integer, String, MetaData, select, insert, update, delete
 
 from async_sqlalchemy import create_async_engine
@@ -33,8 +32,7 @@ async def test_basic_operations():
     # Create tables
     print("\n1. Creating tables...")
     async with engine.begin() as conn:
-        # Use the sync engine to create tables in a thread
-        await anyio.to_thread.run_sync(lambda: metadata.create_all(engine.sync_engine))
+        await conn.run_sync(metadata.create_all)
     print("✓ Tables created")
     
     # Insert data
@@ -53,7 +51,7 @@ async def test_basic_operations():
     print("\n3. Selecting all users...")
     async with engine.connect() as conn:
         result = await conn.execute(select(users))
-        rows = await result.fetchall()
+        rows = result.fetchall()
         print(f"✓ Found {len(rows)} users:")
         for row in rows:
             print(f"  - ID: {row.id}, Name: {row.name}, Email: {row.email}")
@@ -64,7 +62,7 @@ async def test_basic_operations():
         result = await conn.execute(
             select(users).where(users.c.name == 'Alice')
         )
-        row = await result.first()
+        row = result.first()
         if row:
             print(f"✓ Found user: {row.name} ({row.email})")
         else:
@@ -86,7 +84,7 @@ async def test_basic_operations():
         result = await conn.execute(
             select(users).where(users.c.name == 'Alice')
         )
-        row = await result.first()
+        row = result.first()
         if row:
             print(f"✓ Updated email: {row.email}")
         else:
@@ -110,7 +108,7 @@ async def test_basic_operations():
     print("\n9. Verifying deletion...")
     async with engine.connect() as conn:
         result = await conn.execute(select(users))
-        rows = await result.fetchall()
+        rows = result.fetchall()
         print(f"✓ Remaining users: {len(rows)}")
         for row in rows:
             print(f"  - {row.name}")
@@ -119,14 +117,14 @@ async def test_basic_operations():
     print("\n10. Testing scalars query...")
     async with engine.connect() as conn:
         result = await conn.execute(select(users.c.name))
-        scalars = await result.scalars()
-        names = await scalars.all()
+        scalars = result.scalars()
+        names = scalars.all()
         print(f"✓ All user names: {', '.join(names)}")
     
     # Cleanup
     print("\n11. Cleaning up...")
     async with engine.begin() as conn:
-        await anyio.to_thread.run_sync(lambda: metadata.drop_all(engine.sync_engine))
+        await conn.run_sync(metadata.drop_all)
     print("✓ Tables dropped")
     
     await engine.dispose()
@@ -154,7 +152,7 @@ async def test_transaction_rollback():
     # Create table
     print("\n1. Creating table...")
     async with engine.begin() as conn:
-        await anyio.to_thread.run_sync(lambda: metadata.create_all(engine.sync_engine))
+        await conn.run_sync(metadata.create_all)
     print("✓ Table created")
     
     # Test successful transaction
@@ -167,7 +165,7 @@ async def test_transaction_rollback():
     # Verify data
     async with engine.connect() as conn:
         result = await conn.execute(select(items))
-        rows = await result.fetchall()
+        rows = result.fetchall()
         print(f"✓ Found {len(rows)} items after commit")
     
     # Test rollback
@@ -183,13 +181,13 @@ async def test_transaction_rollback():
     # Verify rollback
     async with engine.connect() as conn:
         result = await conn.execute(select(items))
-        rows = await result.fetchall()
+        rows = result.fetchall()
         print(f"✓ Still have {len(rows)} items (Item 3 was rolled back)")
     
     # Cleanup
     print("\n4. Cleaning up...")
     async with engine.begin() as conn:
-        await anyio.to_thread.run_sync(lambda: metadata.drop_all(engine.sync_engine))
+        await conn.run_sync(metadata.drop_all)
     await engine.dispose()
     print("✓ Cleaned up")
     
