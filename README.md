@@ -19,3 +19,7 @@ A minimal, efficient reimplementation of Tagflow from scratch that keeps the nic
 ### [uvloop-updated-benchmark](./uvloop-updated-benchmark/)
 
 Updated benchmark of [uvloop](https://github.com/MagicStack/uvloop) vs asyncio on Python 3.13. Tests echo server performance with sockets, streams, and protocol APIs. **Surprising findings**: Python 3.13's asyncio is now faster than uvloop for low-level socket operations (1.35-1.52x), while uvloop still excels with high-level streams/protocols (2.15-2.37x faster). Overall average: uvloop is 1.68x faster, but the gap has significantly narrowed compared to older Python versions.
+
+### [sqlalchemy-asyncio-anyio](./sqlalchemy-asyncio-anyio/)
+
+Reimplementation of SQLAlchemy's asyncio extension using [anyio](https://github.com/agronholm/anyio) instead of greenlet. With Python 3.14 and free-threading on the horizon, this experiment explores a greenlet-free alternative that's compatible with both asyncio and trio. Shows that the same API can be maintained while using anyio's backend-agnostic primitives and structured concurrency. **Performance**: Within 15-22% of standard SQLAlchemy asyncio, demonstrating feasibility as a future-ready alternative.
