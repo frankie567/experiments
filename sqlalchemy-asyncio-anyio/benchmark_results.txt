@@ -1,0 +1,45 @@
+======================================================================
+SQLAlchemy AsyncIO Comparison: Standard vs AnyIO
+======================================================================
+
+Running benchmarks...
+
+1. Sequential Queries (100 queries)
+----------------------------------------------------------------------
+Standard SQLAlchemy (asyncio + greenlet): 0.0528s
+AnyIO approach (anyio, no greenlet):      0.0570s
+Difference: +8.06%
+
+2. Concurrent Queries (10 concurrent)
+----------------------------------------------------------------------
+Standard SQLAlchemy (asyncio.gather):  0.0148s
+AnyIO approach (task groups):          0.0163s
+Difference: +10.32%
+
+======================================================================
+Summary
+======================================================================
+
+Key Findings:
+
+1. Performance: Both approaches have similar performance since they use
+   the same underlying async drivers (aiosqlite in this case).
+
+2. Greenlet Usage: Standard SQLAlchemy uses greenlet for context switching
+   between sync and async code. Our anyio approach doesn't need greenlet
+   because we use async/await throughout.
+
+3. Backend Agnostic: The anyio approach works with both asyncio and trio,
+   while standard SQLAlchemy asyncio is tied to asyncio.
+
+4. Structured Concurrency: AnyIO provides task groups which offer better
+   error handling and cancellation semantics than asyncio.gather.
+
+5. Free-Threading Ready: By avoiding greenlet, the anyio approach may be
+   more compatible with Python 3.14+ free-threading, though this needs
+   testing once Python 3.14 is released.
+
+Conclusion: The anyio approach is a viable alternative that maintains
+compatibility with SQLAlchemy's async drivers while avoiding greenlet
+dependencies and offering backend flexibility.
+    

@@ -1,0 +1,10 @@
+[project]
+name = "sqlalchemy-asyncio-anyio"
+version = "0.1.0"
+description = "Reimplementation of SQLAlchemy asyncio extension using anyio instead of greenlet"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy>=2.0.0",
+    "anyio>=4.0.0",
+    "aiosqlite>=0.20.0",
+]
