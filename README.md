@@ -4,6 +4,10 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+### [sqlalchemy-asyncio-anyio](./sqlalchemy-asyncio-anyio/)
+
+Reimplementation of SQLAlchemy's asyncio extension using [anyio](https://github.com/agronholm/anyio) instead of gevent/greenlet. With Python 3.14 and free-threading on the horizon, greenlet's compatibility is uncertain. This experiment demonstrates a simpler architecture using thread pools via anyio that maintains API compatibility with the official extension while being ready for free-threading. Includes comprehensive tests with SQLite/aiosqlite demonstrating both Core and ORM usage patterns work correctly.
+
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
 Performance benchmark comparing [tagflow](https://github.com/lessrest/tagflow) and [Jinja2](https://jinja.palletsprojects.com/en/stable/) for HTML generation. Tests various scenarios including simple pages, complex nested structures, and data tables. Results show Jinja2 with proper Environment setup is significantly faster across all scenarios.
