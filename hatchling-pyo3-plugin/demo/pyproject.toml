@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling", "hatchling-pyo3-plugin"]
+build-backend = "hatchling.build"
+
+[project]
+name = "demo-pyo3-extension"
+version = "0.1.0"
+description = "Demo PyO3 extension using hatchling-pyo3-plugin"
+requires-python = ">=3.8"
+readme = "README.md"
+
+[tool.hatch.build.hooks.pyo3]
+# The plugin will automatically detect and build Rust extensions

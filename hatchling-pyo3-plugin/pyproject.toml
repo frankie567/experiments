@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hatchling-pyo3-plugin"
+version = "0.1.0"
+description = "A Hatchling build hook plugin for building PyO3 Rust extensions"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "François Voron", email = "fvoron@gmail.com" }
+]
+dependencies = [
+    "hatchling>=1.18.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/frankie567/experiments"
+Repository = "https://github.com/frankie567/experiments"
+
+[project.entry-points.hatch]
+pyo3 = "hatchling_pyo3_plugin.hooks"
