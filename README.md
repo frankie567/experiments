@@ -19,3 +19,7 @@ A minimal, efficient reimplementation of Tagflow from scratch that keeps the nic
 ### [uvloop-updated-benchmark](./uvloop-updated-benchmark/)
 
 Updated benchmark of [uvloop](https://github.com/MagicStack/uvloop) vs asyncio on Python 3.13. Tests echo server performance with sockets, streams, and protocol APIs. **Surprising findings**: Python 3.13's asyncio is now faster than uvloop for low-level socket operations (1.35-1.52x), while uvloop still excels with high-level streams/protocols (2.15-2.37x faster). Overall average: uvloop is 1.68x faster, but the gap has significantly narrowed compared to older Python versions.
+
+### [hatchling-pyo3-plugin](./hatchling-pyo3-plugin/)
+
+A [Hatchling](https://hatch.pypa.io/) build hook plugin for building [PyO3](https://github.com/PyO3/pyo3) Rust extensions. Provides an alternative to [Maturin](https://github.com/PyO3/maturin) by enabling PyO3 projects to use Hatchling as their build backend. The plugin automatically detects `Cargo.toml`, compiles Rust extensions with `cargo build`, and packages the compiled binaries into Python wheels. Includes a working demo project with simple PyO3 functions (add, multiply, greet) and comprehensive documentation. Successfully demonstrates that PyO3 extensions can be built with the standard Python packaging ecosystem.
