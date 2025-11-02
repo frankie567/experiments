@@ -58,6 +58,12 @@ requires-python = ">=3.8"
 [tool.hatch.build.hooks.pyo3]
 # Optional: specify Rust extensions explicitly
 # If not specified, plugin will look for Cargo.toml in project root
+
+# Optional configuration:
+# cargo-manifest = "Cargo.toml"  # Path to Cargo.toml (default: "Cargo.toml")
+# profile = "release"            # Build profile (default: "release", can be "debug")
+# target-dir = "target"          # Cargo target directory (default: "target")
+# cargo-args = ["--features", "special"]  # Additional cargo arguments
 ```
 
 ## Implementation Details

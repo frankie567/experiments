@@ -30,10 +30,15 @@ class PyO3BuildHook(BuildHookInterface):
             # Only build Rust extensions for wheel builds
             return
 
+        # Get configuration options
+        config = self.config
+        cargo_manifest = config.get("cargo-manifest", "Cargo.toml")
+        
         # Find the Cargo.toml file
-        cargo_toml = Path(self.root) / "Cargo.toml"
+        cargo_toml = Path(self.root) / cargo_manifest
         if not cargo_toml.exists():
             # No Rust extensions to build
+            self.app.display_debug(f"No Cargo.toml found at {cargo_toml}, skipping Rust build")
             return
 
         # Build the Rust extension
@@ -46,17 +51,26 @@ class PyO3BuildHook(BuildHookInterface):
         """Build the Rust extension using cargo."""
         cargo_dir = cargo_toml.parent
 
-        # Determine the build profile
-        profile = "release"
+        # Get configuration options
+        config = self.config
+        profile = config.get("profile", "release")
+        cargo_args = config.get("cargo-args", [])
         
         # Build command
         cmd = [
             "cargo",
             "build",
-            "--release",
             "--manifest-path",
             str(cargo_toml),
         ]
+        
+        # Add profile flag if not debug
+        if profile != "debug":
+            cmd.append(f"--{profile}")
+        
+        # Add custom cargo arguments
+        if cargo_args:
+            cmd.extend(cargo_args)
 
         # Set environment variables for the build
         env = os.environ.copy()
@@ -88,7 +102,12 @@ class PyO3BuildHook(BuildHookInterface):
 
     def _add_rust_artifacts(self, build_data: Dict[str, Any]) -> None:
         """Find compiled Rust libraries and add them to the wheel."""
-        target_dir = Path(self.root) / "target" / "release"
+        # Get configuration
+        config = self.config
+        profile = config.get("profile", "release")
+        target_dir_name = config.get("target-dir", "target")
+        
+        target_dir = Path(self.root) / target_dir_name / profile
         
         if not target_dir.exists():
             self.app.display_warning(f"Target directory not found: {target_dir}")
