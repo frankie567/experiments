@@ -116,31 +116,34 @@ class PyO3BuildHook(BuildHookInterface):
         # Determine the library extension based on platform
         if platform.system() == "Windows":
             lib_ext = ".pyd"
-            lib_pattern = "*.dll"
+            # On Windows, Rust cdylib outputs .dll, which we need to find
+            lib_patterns = ["*.dll", "*.pyd"]
         elif platform.system() == "Darwin":
             lib_ext = ".so"
-            lib_pattern = "*.dylib"
+            # On macOS, Rust cdylib outputs .dylib
+            lib_patterns = ["*.dylib"]
         else:  # Linux
             lib_ext = ".so"
-            lib_pattern = "*.so"
+            # On Linux, Rust cdylib outputs .so
+            lib_patterns = ["*.so"]
 
         # Find the compiled library
-        # Look for cdylib outputs
+        # Look for cdylib outputs with various patterns
         found_libs = []
-        for lib_file in target_dir.glob(f"lib*{lib_pattern}"):
-            if lib_file.is_file():
-                found_libs.append(lib_file)
         
-        # Also check for .so files directly (PyO3 outputs)
-        for lib_file in target_dir.glob("*.so"):
-            if lib_file.is_file() and lib_file not in found_libs:
-                found_libs.append(lib_file)
-        
-        # On Windows, check for .pyd files
-        if platform.system() == "Windows":
-            for lib_file in target_dir.glob("*.pyd"):
+        # Try with 'lib' prefix first (standard Rust naming)
+        for pattern in lib_patterns:
+            for lib_file in target_dir.glob(f"lib*{pattern}"):
                 if lib_file.is_file() and lib_file not in found_libs:
                     found_libs.append(lib_file)
+        
+        # Also try without 'lib' prefix (some configurations)
+        for pattern in lib_patterns:
+            for lib_file in target_dir.glob(pattern):
+                if lib_file.is_file() and lib_file not in found_libs:
+                    # Skip if it starts with 'lib' (already found above)
+                    if not lib_file.stem.startswith("lib"):
+                        found_libs.append(lib_file)
 
         if not found_libs:
             self.app.display_warning(
