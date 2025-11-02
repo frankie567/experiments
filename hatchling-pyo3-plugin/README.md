@@ -10,10 +10,13 @@ This is inspired by [setuptools-rust](https://github.com/PyO3/setuptools-rust), 
 
 ## Features
 
-- Build PyO3 Rust extensions as part of the Hatchling build process
-- Automatic detection of Cargo.toml
-- Support for multiple Rust extensions
-- Integration with Python package building workflow
+- ✅ Build PyO3 Rust extensions as part of the Hatchling build process
+- ✅ Automatic detection of Cargo.toml
+- ✅ Cross-platform support (Linux, macOS, Windows)
+- ✅ Configurable build profiles (release/debug)
+- ✅ Custom Cargo arguments support
+- ✅ Integration with standard Python packaging workflow
+- ✅ No need to learn Maturin - uses familiar Hatchling tools
 
 ## Usage
 
@@ -71,12 +74,35 @@ requires-python = ">=3.8"
 The plugin:
 1. Implements Hatchling's `BuildHookInterface`
 2. Detects Rust extensions via `Cargo.toml`
-3. Builds Rust code using `cargo build --release`
-4. Copies the compiled `.so`/`.pyd` files to the Python package
+3. Builds Rust code using `cargo build --release` (or custom profile)
+4. Automatically handles platform-specific naming (`.so`, `.dylib`, `.dll`, `.pyd`)
+5. Copies the compiled libraries to the Python package in the wheel
+
+Platform-specific handling:
+- **Linux**: `libname.so` → `name.so`
+- **macOS**: `libname.dylib` → `name.so`
+- **Windows**: `name.dll` → `name.pyd`
 
 ## Demo
 
-See the `demo/` directory for a working example of a PyO3 extension built with this plugin.
+The `demo/` directory contains a working example with:
+- Simple PyO3 functions: `add()`, `multiply()`, `greet()`
+- Comprehensive test suite
+- Example build output
+
+To try it:
+```bash
+cd demo
+python -m build --wheel --no-isolation
+pip install dist/demo_pyo3_extension-*.whl
+python test_comprehensive.py
+```
+
+## Documentation
+
+- [CONFIGURATION.md](./CONFIGURATION.md) - Configuration options and examples
+- [SUMMARY.md](./SUMMARY.md) - Implementation details and architecture
+- [BUILD_OUTPUT.md](./BUILD_OUTPUT.md) - Example build and test output
 
 ## References
 
