@@ -32,6 +32,7 @@ broker.add_middleware(AsyncIO())
 
 
 MEMORY_LOG_FILE = "memory_usage_sleep.csv"
+MEMORY_ALLOCATION_SIZE = 128 * 1024 * 1024  # 128 MB
 
 
 def log_memory(label: str = "") -> None:
@@ -60,7 +61,7 @@ async def sleep_task(sleep_duration: int = 30) -> None:
     
     # Allocate 128 MB
     log_memory("before_alloc")
-    data = bytes(bytearray(128 * 1024 * 1024))
+    data = bytes(bytearray(MEMORY_ALLOCATION_SIZE))
     log_memory("after_alloc")
     
     # Sleep for the specified duration
@@ -85,7 +86,7 @@ async def sleep_task_no_reference(sleep_duration: int = 30) -> None:
     
     # Allocate 128 MB
     log_memory("before_alloc_noref")
-    data = bytes(bytearray(128 * 1024 * 1024))
+    data = bytes(bytearray(MEMORY_ALLOCATION_SIZE))
     log_memory("after_alloc_noref")
     
     # Drop reference

@@ -40,6 +40,7 @@ class BigException(Exception):
 
 
 MEMORY_LOG_FILE = "memory_usage_exception.csv"
+MEMORY_ALLOCATION_SIZE = 128 * 1024 * 1024  # 128 MB
 
 
 def log_memory(label: str = "") -> None:
@@ -66,7 +67,7 @@ async def oom_task() -> None:
     """
     log_memory("before_alloc")
     # Allocate 128 MB
-    a = bytes(bytearray(128 * 1024 * 1024))
+    a = bytes(bytearray(MEMORY_ALLOCATION_SIZE))
     log_memory("after_alloc")
     # Raise exception that holds the large object
     raise BigException(a)
