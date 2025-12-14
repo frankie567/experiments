@@ -127,14 +127,18 @@ The fix addresses multiple sources of reference retention:
 
 By explicitly breaking all these reference chains and forcing GC, we ensure large objects are freed promptly.
 
-## Limitations
+## Limitations and Considerations
 
 This is a proof-of-concept fix that demonstrates the solution approach. For production use, consider:
 
 1. **Upstream Fix**: Ideally, this should be fixed in Dramatiq itself
 2. **Testing**: More extensive testing across different scenarios
-3. **Performance**: The explicit GC calls may have performance implications under high load
+3. **Performance**: The explicit `gc.collect()` calls may have performance implications under high load
+   - In testing, the overhead is minimal compared to the retry delay
+   - Could be made configurable (e.g., `cleanup_gc=True` parameter)
+   - Alternative: Use weak references or rely on natural GC cycles
 4. **Compatibility**: This has been tested with Dramatiq 2.0.0 and Python 3.13
+5. **Concurrent Use**: Don't use both `AsyncIO` and `FixedAsyncIO` in the same broker
 
 ## Recommendations
 
