@@ -97,7 +97,9 @@ def main():
         ("memory_usage_exception.csv", "memory_usage_exception.png", 
          "Memory Usage: Exception Test (128 MB allocation with exception)"),
         ("memory_usage_sleep.csv", "memory_usage_sleep.png",
-         "Memory Usage: Sleep Test (128 MB allocation with async sleep)")
+         "Memory Usage: Sleep Test (128 MB allocation with async sleep)"),
+        ("memory_usage_fixed.csv", "memory_usage_fixed.png",
+         "Memory Usage: FIXED Middleware (128 MB allocation with exception)")
     ]
     
     plots_created = 0

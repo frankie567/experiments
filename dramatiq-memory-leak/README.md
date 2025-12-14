@@ -8,6 +8,12 @@ We're investigating memory leak behavior in Dramatiq, particularly:
 - Issues with AsyncIO middleware and exceptions that hold large data
 - Memory behavior during long-running async tasks
 
+## Solution
+
+**We've developed a fixed AsyncIO middleware that resolves the memory leak!** See `SOLUTION.md` for details.
+
+The `FixedAsyncIO` middleware properly cleans up exception references, reducing max memory from 4.9 GB down to 157 MB (just the baseline + one allocation). See `fixed_asyncio_middleware.py` for the implementation.
+
 ## Scripts
 
 ### `memory_leak_exception.py`
@@ -42,6 +48,18 @@ The script will:
 4. Logs memory usage throughout execution
 5. Outputs memory data to `memory_usage_sleep.csv`
 
+### `test_fixed_middleware.py`
+
+Tests the FIXED AsyncIO middleware that resolves the memory leak. Same test as the exception script, but using our fixed implementation.
+
+**Usage:**
+```bash
+./test_fixed_middleware.py
+./run_worker_fixed.py
+```
+
+Memory is properly released after each retry - max memory stays at 157 MB instead of growing to 4.9 GB!
+
 ### `plot_memory.py`
 
 Generates visualization of memory usage from the CSV files produced by the test scripts.
@@ -52,8 +70,9 @@ Generates visualization of memory usage from the CSV files produced by the test 
 ```
 
 This will generate:
-- `memory_usage_exception.png` - Plot of memory usage for the exception test
-- `memory_usage_sleep.png` - Plot of memory usage for the sleep test
+- `memory_usage_exception.png` - Plot showing the memory leak (original middleware)
+- `memory_usage_sleep.png` - Plot showing normal behavior with sleep tasks
+- `memory_usage_fixed.png` - Plot showing the fix works (stable memory)
 
 ## Requirements
 
