@@ -8,8 +8,10 @@ This document explores additional problematic scenarios beyond the basic excepti
 |----------|----------------|----------|-------------|
 | **Single Exception** | 37 MB → 4.9 GB | **Critical** | Baseline leak: 128 MB/retry |
 | **Nested Exceptions** | 38 MB → 9.3 GB | **Catastrophic** | 2× worse: 256 MB/retry |
-| **Concurrent Exceptions** | TBD | **Critical+** | Multiplied by task count |
-| **Large Results** | TBD | **Low/None** | Likely exception-specific |
+| **Concurrent Exceptions** | Untested* | **Critical+** | Expected: Multiplied by task count |
+| **Large Results** | Untested* | **Low/None** | Expected: No leak (exception-specific) |
+
+\* Scripts created but not yet executed in test environment
 
 ## Scenario 1: Nested/Chained Exceptions ⚠️ CATASTROPHIC
 
