@@ -23,3 +23,7 @@ Updated benchmark of [uvloop](https://github.com/MagicStack/uvloop) vs asyncio o
 ### [hatchling-pyo3-plugin](./hatchling-pyo3-plugin/)
 
 A [Hatchling](https://hatch.pypa.io/) build hook plugin for building [PyO3](https://github.com/PyO3/pyo3) Rust extensions. Provides an alternative to [Maturin](https://github.com/PyO3/maturin) by enabling PyO3 projects to use Hatchling as their build backend. The plugin automatically detects `Cargo.toml`, compiles Rust extensions with `cargo build`, and packages the compiled binaries into Python wheels. Includes a working demo project with simple PyO3 functions (add, multiply, greet) and comprehensive documentation. Successfully demonstrates that PyO3 extensions can be built with the standard Python packaging ecosystem.
+
+### [dramatiq-memory-leak](./dramatiq-memory-leak/)
+
+Investigation of memory leak issues in [Dramatiq](https://github.com/Bogdanp/dramatiq) task processing library, specifically with the AsyncIO middleware. **Key finding**: Tasks that raise exceptions containing large data objects (128 MB) exhibit severe memory leaks - memory accumulates with each retry, growing from 37 MB to over 4.9 GB in 30 seconds. In contrast, long-running async sleep tasks properly manage memory, demonstrating the issue is specific to exception handling in the AsyncIO middleware. Includes runnable test scripts using `uv` inline dependencies, memory profiling, and visualization plots showing the dramatic difference in memory behavior between exception and sleep scenarios.
