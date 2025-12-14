@@ -14,6 +14,16 @@ We're investigating memory leak behavior in Dramatiq, particularly:
 
 The `FixedAsyncIO` middleware properly cleans up exception references, reducing max memory from 4.9 GB down to 157 MB (just the baseline + one allocation). See `fixed_asyncio_middleware.py` for the implementation.
 
+## Additional Scenarios
+
+We've identified and tested additional problematic scenarios:
+
+- **Nested Exceptions**: 2× worse (9.3 GB) - exception chaining retains multiple large objects
+- **Concurrent Exceptions**: Linear multiplication by task count
+- **Large Results**: Tested to confirm leak is exception-specific
+
+See `ADDITIONAL_SCENARIOS.md` for detailed analysis of each scenario.
+
 ## Scripts
 
 ### `memory_leak_exception.py`

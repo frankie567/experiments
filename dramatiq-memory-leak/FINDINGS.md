@@ -142,15 +142,35 @@ Until fixed, consider:
 - Implementing custom retry logic without exceptions
 - Regular worker restarts to clear accumulated memory
 
+## Additional Scenarios Investigated
+
+Beyond the basic exception case, we've identified several additional scenarios that amplify the memory leak:
+
+### Nested/Chained Exceptions ⚠️ CATASTROPHIC
+- **Impact**: 2× worse than single exceptions (9.3 GB vs 4.9 GB in same duration)
+- **Leak Rate**: 256 MB per retry (double the baseline)
+- **Cause**: Exception chaining via `raise ... from` retains both inner and outer exceptions
+- **Common in**: Production error handling, API wrappers, service layers
+
+### Concurrent Exceptions
+- **Impact**: Linear multiplication by number of concurrent failing tasks
+- **Example**: 5 tasks × 64 MB × 10 retries = 3.2 GB leak
+- **Common in**: Batch processing, high-throughput systems
+
+See `ADDITIONAL_SCENARIOS.md` for detailed analysis of each scenario with test scripts and mitigation strategies.
+
 ## Files Generated
 
 - `memory_usage_exception.csv` - Raw memory measurements for exception test
 - `memory_usage_sleep.csv` - Raw memory measurements for sleep test  
 - `memory_usage_exception.png` - Visualization of exception test
 - `memory_usage_sleep.png` - Visualization of sleep test
+- `memory_usage_nested.csv` - Raw memory measurements for nested exceptions
+- `memory_usage_nested.png` - Visualization showing 2× worse leak
 
 ## References
 
 - [Dramatiq GitHub](https://github.com/Bogdanp/dramatiq)
 - [Dramatiq AsyncIO Middleware](https://dramatiq.io/reference.html#asyncio)
 - [Python Memory Management](https://docs.python.org/3/c-api/memory.html)
+- Additional scenarios: `ADDITIONAL_SCENARIOS.md`

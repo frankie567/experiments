@@ -99,7 +99,13 @@ def main():
         ("memory_usage_sleep.csv", "memory_usage_sleep.png",
          "Memory Usage: Sleep Test (128 MB allocation with async sleep)"),
         ("memory_usage_fixed.csv", "memory_usage_fixed.png",
-         "Memory Usage: FIXED Middleware (128 MB allocation with exception)")
+         "Memory Usage: FIXED Middleware (128 MB allocation with exception)"),
+        ("memory_usage_nested.csv", "memory_usage_nested.png",
+         "Memory Usage: Nested Exceptions (2× 128 MB with exception chaining)"),
+        ("memory_usage_concurrent.csv", "memory_usage_concurrent.png",
+         "Memory Usage: Concurrent Tasks (5 tasks, 64 MB each)"),
+        ("memory_usage_results.csv", "memory_usage_results.png",
+         "Memory Usage: Large Results (128 MB return values)")
     ]
     
     plots_created = 0
