@@ -77,7 +77,7 @@ def test_memory_leak_with_original_middleware():
         mem_before = get_memory_mb()
         
         # Allocate 64 MB
-        data = bytes(bytearray(64 * 1024 * 1024))
+        data = bytes(64 * 1024 * 1024)
         
         # Record memory after allocation
         mem_after = get_memory_mb()

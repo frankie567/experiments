@@ -87,6 +87,20 @@ See [TECHNICAL_EXPLANATION.md](./TECHNICAL_EXPLANATION.md) for a comprehensive a
 - Python garbage collection considerations
 - Implementation details and tradeoffs
 
+## Important Limitations
+
+The `FixedAsyncIO` middleware has some limitations to be aware of:
+
+1. **Global State Modification**: The middleware sets a global event loop thread in both its own module and the original `dramatiq.asyncio` module. This is necessary for actor decorators to work but means:
+   - Do not use both `AsyncIO` and `FixedAsyncIO` in the same application
+   - Multiple broker instances with different middleware configurations may conflict
+
+2. **Sensitive Data in Exceptions**: The fix temporarily stores exception objects with their tracebacks, which contain local variables from all stack frames. While this is necessary to re-raise exceptions correctly, be mindful of:
+   - Avoid storing passwords or secrets in local variables when raising exceptions
+   - The data is cleared immediately after re-raising, but exists briefly in memory
+
+These are inherent to how the fix works and would need to be addressed in any upstream implementation.
+
 ## Files
 
 - `README.md` - This file
