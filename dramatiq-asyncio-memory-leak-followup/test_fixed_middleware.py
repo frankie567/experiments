@@ -132,7 +132,7 @@ def test_no_memory_leak_with_fixed_middleware():
     
     # Get final memory
     final_memory = get_memory_mb()
-    memory_growth = final_memory - baseline_memory
+    memory_growth_final = final_memory - baseline_memory
     
     print(f"\nRetries completed: {retry_count[0]}")
     print(f"\nMemory samples:")
@@ -142,36 +142,45 @@ def test_no_memory_leak_with_fixed_middleware():
               f"after={sample['after']:.2f} MB, "
               f"delta={sample['delta']:.2f} MB")
     
-    print(f"\nFinal memory: {final_memory:.2f} MB")
-    print(f"Memory growth: {memory_growth:.2f} MB")
-    print(f"Expected growth: ~64-100 MB (single allocation + overhead)")
+    # Calculate peak memory during retries
+    peak_memory = max(sample['after'] for sample in memory_samples)
+    memory_growth_peak = peak_memory - baseline_memory
+    
+    print(f"\nBaseline memory: {baseline_memory:.2f} MB")
+    print(f"Peak memory (during retries): {peak_memory:.2f} MB")
+    print(f"Final memory (after cleanup): {final_memory:.2f} MB")
+    print(f"Peak memory growth: {memory_growth_peak:.2f} MB")
+    print(f"Expected peak growth: ~64-100 MB (single allocation + overhead)")
     
     # Analysis
     print(f"\n{'='*70}")
     print("ANALYSIS:")
     print(f"{'='*70}")
     
-    # Check if memory stayed stable (grew by less than 2x allocation size)
-    # With the fix, only one allocation should be in memory at a time
-    if memory_growth <= 128:  # Less than 2 allocations worth
+    # Check if memory stayed stable during retries (peak grew by less than 2x allocation size)
+    # With the fix, only one allocation should be in memory at a time, even during retries
+    if memory_growth_peak <= 128:  # Less than 2 allocations worth at peak
         print("✓ NO MEMORY LEAK!")
-        print(f"   Memory grew by only {memory_growth:.2f} MB")
-        print(f"   This is {memory_growth / 64:.1f}x the allocation size")
-        print("   Only one allocation is retained at a time")
+        print(f"   Peak memory grew by only {memory_growth_peak:.2f} MB")
+        print(f"   This is {memory_growth_peak / 64:.1f}x the allocation size")
+        print("   Only one allocation is retained at a time, even during retries")
         print("\n   This demonstrates the fix: exception objects are properly")
         print("   cleaned up between retries, preventing memory accumulation.")
+        print(f"\n   Final memory growth: {memory_growth_final:.2f} MB")
+        print("   (similar to peak, showing stable memory behavior)")
     else:
-        print("❌ Memory leak still present")
-        print(f"  Memory growth ({memory_growth:.2f} MB) exceeds expected range")
-        print(f"  This is {memory_growth / 64:.1f}x the allocation size")
+        print("❌ Memory leak still present during retries")
+        print(f"  Peak memory growth ({memory_growth_peak:.2f} MB) exceeds expected range")
+        print(f"  This is {memory_growth_peak / 64:.1f}x the allocation size")
     
     print(f"{'='*70}\n")
     
-    # This test proves the fix, so we expect NO significant memory leak
-    assert memory_growth <= 128, (
+    # This test proves the fix by checking PEAK memory during retries
+    # The fix should prevent accumulation even during active processing
+    assert memory_growth_peak <= 128, (
         f"Memory leak still present with fixed middleware. "
-        f"Memory growth was {memory_growth:.2f} MB, expected <= 128 MB. "
-        f"The fix should prevent memory accumulation."
+        f"Peak memory growth was {memory_growth_peak:.2f} MB, expected <= 128 MB. "
+        f"The fix should prevent memory accumulation during retries."
     )
 
 

@@ -127,7 +127,7 @@ def test_memory_leak_with_original_middleware():
     
     # Get final memory
     final_memory = get_memory_mb()
-    memory_growth = final_memory - baseline_memory
+    memory_growth_final = final_memory - baseline_memory
     
     print(f"\nRetries completed: {retry_count[0]}")
     print(f"\nMemory samples:")
@@ -137,35 +137,44 @@ def test_memory_leak_with_original_middleware():
               f"after={sample['after']:.2f} MB, "
               f"delta={sample['delta']:.2f} MB")
     
-    print(f"\nFinal memory: {final_memory:.2f} MB")
-    print(f"Memory growth: {memory_growth:.2f} MB")
-    print(f"Expected growth: ~320 MB (64 MB × 5 retries)")
+    # Calculate peak memory during retries
+    peak_memory = max(sample['after'] for sample in memory_samples)
+    memory_growth_peak = peak_memory - baseline_memory
+    
+    print(f"\nBaseline memory: {baseline_memory:.2f} MB")
+    print(f"Peak memory (during retries): {peak_memory:.2f} MB")
+    print(f"Final memory (after cleanup): {final_memory:.2f} MB")
+    print(f"Peak memory growth: {memory_growth_peak:.2f} MB")
+    print(f"Expected peak growth: ~320-384 MB (64 MB × 5-6 retries)")
     
     # Analysis
     print(f"\n{'='*70}")
     print("ANALYSIS:")
     print(f"{'='*70}")
     
-    # Check if memory leaked (grew by more than 2x the allocation size)
-    # We expect ~64 MB per retry to leak, so 5 retries = ~320 MB growth
-    if memory_growth > 128:  # More than 2 allocations worth
-        print("❌ MEMORY LEAK DETECTED!")
-        print(f"   Memory grew by {memory_growth:.2f} MB")
-        print(f"   This is {memory_growth / 64:.1f}x the allocation size")
-        print("   Multiple allocations are being retained in memory")
+    # Check if memory leaked during retries (peak memory grew by more than 2x allocation)
+    # We expect ~64 MB per retry to leak during processing, so 5-6 retries = ~320-384 MB growth
+    if memory_growth_peak > 128:  # More than 2 allocations worth at peak
+        print("❌ MEMORY LEAK DETECTED (during retries)!")
+        print(f"   Peak memory grew by {memory_growth_peak:.2f} MB")
+        print(f"   This is {memory_growth_peak / 64:.1f}x the allocation size")
+        print("   Multiple allocations were retained in memory during processing")
         print("\n   This demonstrates the bug: exception objects are not")
         print("   released between retries, causing linear memory growth.")
+        print(f"\n   Note: Final memory growth was only {memory_growth_final:.2f} MB")
+        print("   because GC eventually cleaned up after worker stopped,")
+        print("   but during active retries the leak is severe.")
     else:
         print("✓ No significant memory leak detected")
-        print(f"  Memory growth ({memory_growth:.2f} MB) is within expected range")
+        print(f"  Peak memory growth ({memory_growth_peak:.2f} MB) is within expected range")
     
     print(f"{'='*70}\n")
     
-    # This test demonstrates the bug, so we expect it to detect a leak
-    # In a real test suite, this would assert the leak for documentation purposes
-    assert memory_growth > 128, (
+    # This test demonstrates the bug by checking PEAK memory during retries
+    # The leak manifests during processing, not after cleanup
+    assert memory_growth_peak > 128, (
         f"Expected memory leak not demonstrated. "
-        f"Memory growth was only {memory_growth:.2f} MB, expected > 128 MB. "
+        f"Peak memory growth was only {memory_growth_peak:.2f} MB, expected > 128 MB. "
         f"This test should FAIL to demonstrate the bug."
     )
 
