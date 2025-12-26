@@ -4,6 +4,10 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+### [openapi-python-types](./openapi-python-types/)
+
+Python implementation inspired by [openapi-typescript](https://github.com/openapi-ts/openapi-typescript) that converts OpenAPI 3.0/3.1 specifications to Python type definitions. Generates **TypedDict** classes for schemas and **Protocol** classes for API operations. Supports common OpenAPI features including object types, arrays, enums, unions (anyOf/oneOf), nullable types, and references. Includes CLI interface and comprehensive tests. Focuses purely on type generation for static type checking with mypy/pyright, without runtime validation or HTTP client implementation.
+
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
 Performance benchmark comparing [tagflow](https://github.com/lessrest/tagflow) and [Jinja2](https://jinja.palletsprojects.com/en/stable/) for HTML generation. Tests various scenarios including simple pages, complex nested structures, and data tables. Results show Jinja2 with proper Environment setup is significantly faster across all scenarios.
