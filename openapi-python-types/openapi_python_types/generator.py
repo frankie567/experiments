@@ -121,15 +121,16 @@ class TypeGenerator:
         if has_optional:
             self.imports.add("typing.NotRequired")
         
-        # Add docstring if description exists
-        if "description" in schema:
-            lines.append(f'"""{schema["description"]}"""')
-        
         # Generate class definition
         lines.append(f"class {name}(TypedDict):")
         
+        # Add docstring if description exists
+        if "description" in schema:
+            lines.append(f'    """{schema["description"]}"""')
+        
         if not properties:
-            lines.append("    pass")
+            if "description" not in schema:
+                lines.append("    pass")
         else:
             for prop_name, prop_schema in properties.items():
                 prop_type = self._get_python_type(prop_schema)
@@ -260,13 +261,19 @@ class TypeGenerator:
             path_name = path.strip("/").replace("/", "_").replace("{", "").replace("}", "")
             protocol_name = f"{method.title()}{path_name.title().replace('_', '')}Protocol"
         
-        # Add description
-        if "summary" in operation or "description" in operation:
-            desc = operation.get("summary") or operation.get("description")
-            lines.append(f'"""{desc}"""')
         
         lines.append(f"class {protocol_name}(Protocol):")
-        lines.append(f'    """{method.upper()} {path}"""')
+        
+        # Add description as docstring
+        if "summary" in operation or "description" in operation:
+            desc = operation.get("summary") or operation.get("description")
+            lines.append(f'    """{desc}')
+            lines.append(f'    ')
+            lines.append(f'    {method.upper()} {path}')
+            lines.append(f'    """')
+        else:
+            lines.append(f'    """{method.upper()} {path}"""')
+        
         lines.append("")
         lines.append("    def __call__(")
         lines.append("        self,")
