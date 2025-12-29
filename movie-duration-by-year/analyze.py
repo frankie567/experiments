@@ -4,6 +4,7 @@
 #   "httpx>=0.27.0",
 #   "matplotlib>=3.9.0",
 #   "pandas>=2.2.0",
+#   "numpy>=1.26.0",
 # ]
 # ///
 """
@@ -12,10 +13,14 @@ Movie Duration Analysis Script
 This script fetches movie data from the IMDB API and analyzes how movie durations
 have evolved since 1930. It generates visualizations showing average durations
 by year and by decade.
+
+Uses stratified random sampling to ensure statistical accuracy across different eras,
+avoiding bias from the internet era having more votes.
 """
 
 import httpx
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from typing import List, Dict, Any
@@ -25,16 +30,16 @@ BASE_URL = "https://api.imdbapi.dev"
 CURRENT_YEAR = datetime.now().year
 
 
-def fetch_movies_for_year(year: int, min_votes: int = 500) -> List[Dict[str, Any]]:
+def fetch_movies_for_year(year: int, min_votes: int = 0) -> List[Dict[str, Any]]:
     """
     Fetch all movies for a specific year from the IMDB API.
     
     Args:
         year: The year to fetch movies for
-        min_votes: Minimum vote count to filter quality movies (default: 500)
+        min_votes: Minimum vote count to filter movies (default: 0 for no filtering)
     
     Returns:
-        List of movie dictionaries with their data
+        List of movie dictionaries with their data including vote counts
     """
     all_movies = []
     page_token = None
@@ -46,8 +51,10 @@ def fetch_movies_for_year(year: int, min_votes: int = 500) -> List[Dict[str, Any
             "types": "MOVIE",
             "startYear": year,
             "endYear": year,
-            "minVoteCount": min_votes,
         }
+        
+        if min_votes > 0:
+            params["minVoteCount"] = min_votes
         
         if page_token:
             params["pageToken"] = page_token
@@ -74,18 +81,20 @@ def fetch_movies_for_year(year: int, min_votes: int = 500) -> List[Dict[str, Any
 
 def extract_duration_data(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Extract year and duration data from movies.
+    Extract year, duration, and vote count data from movies.
     
     Args:
         movies: List of movie dictionaries
     
     Returns:
-        List of dictionaries with year and duration in minutes
+        List of dictionaries with year, duration in minutes, and vote count
     """
     data = []
     for movie in movies:
         runtime_seconds = movie.get("runtimeSeconds")
         start_year = movie.get("startYear")
+        rating = movie.get("rating", {})
+        vote_count = rating.get("voteCount", 0) if rating else 0
         
         # Only include movies with valid runtime and year
         if runtime_seconds and start_year and runtime_seconds > 0:
@@ -93,9 +102,40 @@ def extract_duration_data(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             data.append({
                 "year": start_year,
                 "duration_minutes": duration_minutes,
+                "vote_count": vote_count,
             })
     
     return data
+
+
+def apply_stratified_sampling(df: pd.DataFrame, sample_size: int = 50) -> pd.DataFrame:
+    """
+    Apply stratified random sampling to ensure equal representation across years.
+    
+    For years with fewer movies than sample_size, includes all movies.
+    For years with more movies, randomly samples sample_size movies.
+    
+    Args:
+        df: DataFrame with movie data
+        sample_size: Number of movies to sample per year (default: 50)
+    
+    Returns:
+        DataFrame with sampled movies
+    """
+    sampled_data = []
+    
+    for year in df['year'].unique():
+        year_df = df[df['year'] == year]
+        
+        if len(year_df) <= sample_size:
+            # Include all movies if fewer than sample_size
+            sampled_data.append(year_df)
+        else:
+            # Random sample without replacement
+            sampled = year_df.sample(n=sample_size, random_state=42)
+            sampled_data.append(sampled)
+    
+    return pd.concat(sampled_data, ignore_index=True)
 
 
 def add_decade_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -112,14 +152,14 @@ def add_decade_column(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: int = 500) -> pd.DataFrame:
+def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: int = 0) -> pd.DataFrame:
     """
     Fetch movies for all years in the specified range.
     
     Args:
         start_year: First year to fetch (default: 1930)
         end_year: Last year to fetch (default: current year)
-        min_votes: Minimum vote count to filter quality movies (default: 500)
+        min_votes: Minimum vote count to filter movies (default: 0 for no filtering)
     
     Returns:
         DataFrame with movie duration data
@@ -130,7 +170,10 @@ def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: in
     all_data = []
     
     print(f"\nFetching movie data from {start_year} to {end_year}...")
-    print(f"Using minVoteCount={min_votes} to focus on well-known movies")
+    if min_votes > 0:
+        print(f"Using minVoteCount={min_votes} as initial filter")
+    else:
+        print("Fetching all movies (no vote threshold)")
     print("=" * 60)
     
     for year in range(start_year, end_year + 1):
@@ -144,24 +187,29 @@ def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: in
     return pd.DataFrame(all_data)
 
 
-def calculate_statistics(df: pd.DataFrame) -> None:
+def calculate_statistics(df: pd.DataFrame, title: str = "STATISTICS") -> None:
     """
     Calculate and print statistics about the data.
     
     Args:
         df: DataFrame with movie data
+        title: Title for the statistics section
     """
     print("\n" + "=" * 60)
-    print("STATISTICS")
+    print(title)
     print("=" * 60)
     
     yearly_avg = df.groupby("year")["duration_minutes"].mean()
+    yearly_count = df.groupby("year").size()
     
     print(f"Total movies analyzed: {len(df)}")
     print(f"Year range: {df['year'].min()} - {df['year'].max()}")
     print(f"Overall average duration: {df['duration_minutes'].mean():.1f} minutes")
     print(f"Shortest average year: {yearly_avg.idxmin()} ({yearly_avg.min():.1f} min)")
     print(f"Longest average year: {yearly_avg.idxmax()} ({yearly_avg.max():.1f} min)")
+    print(f"Min movies per year: {yearly_count.min()}")
+    print(f"Max movies per year: {yearly_count.max()}")
+    print(f"Average movies per year: {yearly_count.mean():.0f}")
     
     # Decade statistics
     df_with_decade = add_decade_column(df.copy())
@@ -172,13 +220,14 @@ def calculate_statistics(df: pd.DataFrame) -> None:
     print("=" * 60)
 
 
-def plot_by_year(df: pd.DataFrame, output_file: str = "duration_by_year.png") -> None:
+def plot_by_year(df: pd.DataFrame, output_file: str = "duration_by_year.png", title_suffix: str = "") -> None:
     """
     Create a plot showing average movie duration by year.
     
     Args:
         df: DataFrame with movie data
         output_file: Output filename for the plot
+        title_suffix: Optional suffix to add to the plot title
     """
     yearly_avg = df.groupby("year")["duration_minutes"].mean()
     yearly_count = df.groupby("year").size()
@@ -199,7 +248,8 @@ def plot_by_year(df: pd.DataFrame, output_file: str = "duration_by_year.png") ->
     ax2.bar(yearly_count.index, yearly_count.values, color=color, alpha=0.3, label='Movie Count')
     ax2.tick_params(axis='y', labelcolor=color)
     
-    plt.title('Average Movie Duration by Year (1930-Present)', fontsize=14, fontweight='bold')
+    title = f'Average Movie Duration by Year (1930-Present){title_suffix}'
+    plt.title(title, fontsize=14, fontweight='bold')
     fig.tight_layout()
     
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
@@ -207,13 +257,14 @@ def plot_by_year(df: pd.DataFrame, output_file: str = "duration_by_year.png") ->
     plt.close()
 
 
-def plot_by_decade(df: pd.DataFrame, output_file: str = "duration_by_decade.png") -> None:
+def plot_by_decade(df: pd.DataFrame, output_file: str = "duration_by_decade.png", title_suffix: str = "") -> None:
     """
     Create a plot showing average movie duration by decade.
     
     Args:
         df: DataFrame with movie data
         output_file: Output filename for the plot
+        title_suffix: Optional suffix to add to the plot title
     """
     df_with_decade = add_decade_column(df.copy())
     decade_avg = df_with_decade.groupby("decade")["duration_minutes"].mean()
@@ -245,7 +296,8 @@ def plot_by_decade(df: pd.DataFrame, output_file: str = "duration_by_decade.png"
              markersize=8, label='Movie Count')
     ax2.tick_params(axis='y', labelcolor=color)
     
-    plt.title('Average Movie Duration by Decade (1930s-Present)', fontsize=14, fontweight='bold')
+    title = f'Average Movie Duration by Decade (1930s-Present){title_suffix}'
+    plt.title(title, fontsize=14, fontweight='bold')
     fig.tight_layout()
     
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
@@ -258,23 +310,36 @@ def main():
     print("\n" + "=" * 60)
     print("MOVIE DURATION ANALYSIS")
     print("Analyzing the evolution of movie durations since 1930")
+    print("Using stratified sampling to avoid internet-era bias")
     print("=" * 60)
     
-    # Fetch all movie data with higher vote threshold for faster processing
-    # Using minVoteCount=500 to focus on popular movies and reduce API calls
-    df = fetch_all_movies(start_year=1930, min_votes=500)
+    # Fetch all movie data with low vote threshold to get a broader sample
+    # Using minVoteCount=10 to filter out extremely obscure entries while
+    # still capturing a wide range of movies across all eras
+    df_all = fetch_all_movies(start_year=1930, min_votes=10)
     
-    if df.empty:
+    if df_all.empty:
         print("\n❌ No data collected. Exiting.")
         return
     
-    # Calculate and display statistics
-    calculate_statistics(df)
+    # Show statistics for all data
+    calculate_statistics(df_all, "STATISTICS (All Movies with 10+ Votes)")
     
-    # Create visualizations
-    print("\nGenerating visualizations...")
-    plot_by_year(df)
-    plot_by_decade(df)
+    # Apply stratified sampling to get equal representation per year
+    print("\n" + "=" * 60)
+    print("Applying stratified random sampling (50 movies per year)...")
+    print("This ensures equal representation across all eras")
+    print("=" * 60)
+    
+    df_sampled = apply_stratified_sampling(df_all, sample_size=50)
+    
+    # Show statistics for sampled data
+    calculate_statistics(df_sampled, "STATISTICS (Stratified Sample)")
+    
+    # Create visualizations for sampled data
+    print("\nGenerating visualizations from stratified sample...")
+    plot_by_year(df_sampled, "duration_by_year.png", " - Stratified Sample")
+    plot_by_decade(df_sampled, "duration_by_decade.png", " - Stratified Sample")
     
     print("\n" + "=" * 60)
     print("✓ Analysis complete!")
