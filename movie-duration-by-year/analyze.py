@@ -25,13 +25,13 @@ BASE_URL = "https://api.imdbapi.dev"
 CURRENT_YEAR = datetime.now().year
 
 
-def fetch_movies_for_year(year: int, min_votes: int = 100) -> List[Dict[str, Any]]:
+def fetch_movies_for_year(year: int, min_votes: int = 500) -> List[Dict[str, Any]]:
     """
     Fetch all movies for a specific year from the IMDB API.
     
     Args:
         year: The year to fetch movies for
-        min_votes: Minimum vote count to filter quality movies (default: 100)
+        min_votes: Minimum vote count to filter quality movies (default: 500)
     
     Returns:
         List of movie dictionaries with their data
@@ -64,7 +64,7 @@ def fetch_movies_for_year(year: int, min_votes: int = 100) -> List[Dict[str, Any
             if not page_token:
                 break
                 
-        except Exception as e:
+        except (httpx.HTTPError, httpx.TimeoutException, httpx.RequestError) as e:
             print(f"Error fetching year {year}: {e}")
             break
     
@@ -98,14 +98,28 @@ def extract_duration_data(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return data
 
 
-def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: int = 100) -> pd.DataFrame:
+def add_decade_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add a decade column to the dataframe.
+    
+    Args:
+        df: DataFrame with year column
+    
+    Returns:
+        DataFrame with decade column added
+    """
+    df["decade"] = (df["year"] // 10) * 10
+    return df
+
+
+def fetch_all_movies(start_year: int = 1930, end_year: int = None, min_votes: int = 500) -> pd.DataFrame:
     """
     Fetch movies for all years in the specified range.
     
     Args:
         start_year: First year to fetch (default: 1930)
         end_year: Last year to fetch (default: current year)
-        min_votes: Minimum vote count to filter quality movies (default: 100)
+        min_votes: Minimum vote count to filter quality movies (default: 500)
     
     Returns:
         DataFrame with movie duration data
@@ -150,8 +164,8 @@ def calculate_statistics(df: pd.DataFrame) -> None:
     print(f"Longest average year: {yearly_avg.idxmax()} ({yearly_avg.max():.1f} min)")
     
     # Decade statistics
-    df["decade"] = (df["year"] // 10) * 10
-    decade_avg = df.groupby("decade")["duration_minutes"].mean()
+    df_with_decade = add_decade_column(df.copy())
+    decade_avg = df_with_decade.groupby("decade")["duration_minutes"].mean()
     
     print(f"\nShortest average decade: {int(decade_avg.idxmin())}s ({decade_avg.min():.1f} min)")
     print(f"Longest average decade: {int(decade_avg.idxmax())}s ({decade_avg.max():.1f} min)")
@@ -201,9 +215,9 @@ def plot_by_decade(df: pd.DataFrame, output_file: str = "duration_by_decade.png"
         df: DataFrame with movie data
         output_file: Output filename for the plot
     """
-    df["decade"] = (df["year"] // 10) * 10
-    decade_avg = df.groupby("decade")["duration_minutes"].mean()
-    decade_count = df.groupby("decade").size()
+    df_with_decade = add_decade_column(df.copy())
+    decade_avg = df_with_decade.groupby("decade")["duration_minutes"].mean()
+    decade_count = df_with_decade.groupby("decade").size()
     
     fig, ax1 = plt.subplots(figsize=(12, 6))
     
