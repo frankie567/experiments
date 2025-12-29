@@ -52,7 +52,6 @@ The script generates:
 
 - `httpx` - For making API requests
 - `matplotlib` - For creating visualizations
-- `pandas` - For data analysis and aggregation
-- `numpy` - For random sampling operations
+- `pandas` - For data analysis and aggregation (includes random sampling functionality)
 
 Dependencies are declared inline in the script using PEP 723 and automatically installed by `uv`.

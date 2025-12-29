@@ -4,7 +4,6 @@
 #   "httpx>=0.27.0",
 #   "matplotlib>=3.9.0",
 #   "pandas>=2.2.0",
-#   "numpy>=1.26.0",
 # ]
 # ///
 """
@@ -20,7 +19,6 @@ avoiding bias from the internet era having more votes.
 
 import httpx
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from typing import List, Dict, Any
