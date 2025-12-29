@@ -1,0 +1,118 @@
+Downloading pillow (6.7MiB)
+Downloading pandas (11.7MiB)
+Downloading numpy (15.6MiB)
+Downloading fonttools (4.7MiB)
+Downloading kiwisolver (1.4MiB)
+Downloading matplotlib (8.3MiB)
+ Downloaded kiwisolver
+ Downloaded pillow
+ Downloaded fonttools
+ Downloaded matplotlib
+ Downloaded numpy
+ Downloaded pandas
+Installed 20 packages in 52ms
+
+============================================================
+MOVIE DURATION ANALYSIS
+Analyzing the evolution of movie durations since 1930
+Using stratified sampling to avoid internet-era bias
+============================================================
+
+Fetching movie data from 1930 to 2025...
+Using minVoteCount=10 as initial filter
+============================================================
+Fetching movies for 1930... ✓ 641 movies
+Fetching movies for 1931... ✓ 741 movies
+Fetching movies for 1932... ✓ 828 movies
+Fetching movies for 1933... ✓ 780 movies
+Fetching movies for 1934... ✓ 904 movies
+Fetching movies for 1935... ✓ 1015 movies
+Fetching movies for 1936... ✓ 1036 movies
+Fetching movies for 1937... ✓ 1058 movies
+Fetching movies for 1938... ✓ 1032 movies
+Fetching movies for 1939... ✓ 1006 movies
+Fetching movies for 1940... ✓ 966 movies
+Fetching movies for 1941... ✓ 956 movies
+Fetching movies for 1942... ✓ 984 movies
+Fetching movies for 1943... ✓ 943 movies
+Fetching movies for 1944... ✓ 795 movies
+Fetching movies for 1945... ✓ 730 movies
+Fetching movies for 1946... ✓ 794 movies
+Fetching movies for 1947... ✓ 829 movies
+Fetching movies for 1948... ✓ 897 movies
+Fetching movies for 1949... ✓ 1000 movies
+Fetching movies for 1950... ✓ 1071 movies
+Fetching movies for 1951... ✓ 1128 movies
+Fetching movies for 1952... ✓ 1096 movies
+Fetching movies for 1953... ✓ 1216 movies
+Fetching movies for 1954... ✓ 1174 movies
+Fetching movies for 1955... ✓ 1228 movies
+Fetching movies for 1956... ✓ 1287 movies
+Fetching movies for 1957... ✓ 1414 movies
+Fetching movies for 1958... ✓ 1381 movies
+Fetching movies for 1959... ✓ 1413 movies
+Fetching movies for 1960... ✓ 1437 movies
+Fetching movies for 1961... ✓ 1496 movies
+Fetching movies for 1962... ✓ 1535 movies
+Fetching movies for 1963... ✓ 1480 movies
+Fetching movies for 1964... ✓ 1616 movies
+Fetching movies for 1965... ✓ 1639 movies
+Fetching movies for 1966... ✓ 1677 movies
+Fetching movies for 1967... ✓ 1762 movies
+Fetching movies for 1968... ✓ 1937 movies
+Fetching movies for 1969... ✓ 2000 movies
+Fetching movies for 1970... ✓ 2055 movies
+Fetching movies for 1971... ✓ 2075 movies
+Fetching movies for 1972... ✓ 2141 movies
+Fetching movies for 1973... ✓ 2114 movies
+Fetching movies for 1974... ✓ 2071 movies
+Fetching movies for 1975... ✓ 1930 movies
+Fetching movies for 1976... ✓ 1907 movies
+Fetching movies for 1977... ✓ 1945 movies
+Fetching movies for 1978... ✓ 1897 movies
+Fetching movies for 1979... ✓ 2092 movies
+Fetching movies for 1980... ✓ 2079 movies
+Fetching movies for 1981... ✓ 2101 movies
+Fetching movies for 1982... ✓ 2196 movies
+Fetching movies for 1983... ✓ 2226 movies
+Fetching movies for 1984... ✓ 2201 movies
+Fetching movies for 1985... ✓ 2223 movies
+Fetching movies for 1986... ✓ 2331 movies
+Fetching movies for 1987... ✓ 2460 movies
+Fetching movies for 1988... ✓ 2512 movies
+Fetching movies for 1989... ✓ 2538 movies
+Fetching movies for 1990... ✓ 2442 movies
+Fetching movies for 1991... ✓ 2475 movies
+Fetching movies for 1992... ✓ 2391 movies
+Fetching movies for 1993... ✓ 2344 movies
+Fetching movies for 1994... ✓ 2381 movies
+Fetching movies for 1995... ✓ 2512 movies
+Fetching movies for 1996... ✓ 2542 movies
+Fetching movies for 1997... ✓ 2783 movies
+Fetching movies for 1998... ✓ 2887 movies
+Fetching movies for 1999... ✓ 3047 movies
+Fetching movies for 2000... ✓ 3206 movies
+Fetching movies for 2001... ✓ 3490 movies
+Fetching movies for 2002... ✓ 3606 movies
+Fetching movies for 2003... ✓ 3737 movies
+Fetching movies for 2004... ✓ 4116 movies
+Fetching movies for 2005... ✓ 4531 movies
+Fetching movies for 2006... ✓ 5053 movies
+Fetching movies for 2007... ✓ 5247 movies
+Fetching movies for 2008... ✓ 5973 movies
+Fetching movies for 2009... ✓ 6648 movies
+Fetching movies for 2010... ✓ 6905 movies
+Fetching movies for 2011... ✓ 7425 movies
+Fetching movies for 2012... ✓ 7931 movies
+Fetching movies for 2013... ✓ 8260 movies
+Fetching movies for 2014... ✓ 8821 movies
+Fetching movies for 2015... ✓ 9123 movies
+Fetching movies for 2016... ✓ 9426 movies
+Fetching movies for 2017... ✓ 9886 movies
+Fetching movies for 2018... ✓ 10023 movies
+Fetching movies for 2019... ✓ 10113 movies
+Fetching movies for 2020... ✓ 8303 movies
+Fetching movies for 2021... ✓ 8902 movies
+Fetching movies for 2022... ✓ 10468 movies
+Fetching movies for 2023... ✓ 10590 movies
+Fetching movies for 2024... 
