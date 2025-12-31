@@ -51,7 +51,7 @@ components:
     
     result = generate_types(spec)
     
-    assert 'Status = Literal["active", "inactive", "pending"]' in result
+    assert "Status = Literal['active', 'inactive', 'pending']" in result
 
 
 def test_array_schema():
@@ -144,4 +144,4 @@ components:
     result = generate_types(spec)
     
     assert "role: NotRequired[Role]" in result
-    assert 'Role = Literal["admin", "user"]' in result
+    assert "Role = Literal['admin', 'user']" in result

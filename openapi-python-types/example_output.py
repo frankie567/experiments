@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, NotRequired, Optional, Protocol, TypedDict
+from typing import List, Literal, NotRequired, Optional, Protocol, TypedDict
 
 class User(TypedDict):
     """A user in the system"""
@@ -23,63 +23,44 @@ class UserUpdate(TypedDict):
     full_name: NotRequired[str]
     is_active: NotRequired[bool]
     role: NotRequired[UserRole]
-
-UserRole = Literal["admin", "user", "guest"]
+UserRole = Literal['admin', 'user', 'guest']
 
 class ListusersProtocol(Protocol):
     """List all users
-    
-    GET /users
-    """
 
-    def __call__(
-        self,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> List[User]: ...
+GET /users"""
+
+    def __call__(self, limit: Optional[int], offset: Optional[int]) -> List[User]:
+        ...
 
 class CreateuserProtocol(Protocol):
     """Create a new user
-    
-    POST /users
-    """
 
-    def __call__(
-        self,
-        body: UserCreate,
-    ) -> User: ...
+POST /users"""
+
+    def __call__(self, body: UserCreate) -> User:
+        ...
 
 class GetuserProtocol(Protocol):
     """Get a user by ID
-    
-    GET /users/{userId}
-    """
 
-    def __call__(
-        self,
-        userId: int,
-    ) -> User: ...
+GET /users/{userId}"""
+
+    def __call__(self, userId: int) -> User:
+        ...
 
 class UpdateuserProtocol(Protocol):
     """Update a user
-    
-    PUT /users/{userId}
-    """
 
-    def __call__(
-        self,
-        userId: int,
-        body: UserUpdate,
-    ) -> User: ...
+PUT /users/{userId}"""
+
+    def __call__(self, userId: int, body: UserUpdate) -> User:
+        ...
 
 class DeleteuserProtocol(Protocol):
     """Delete a user
-    
-    DELETE /users/{userId}
-    """
 
-    def __call__(
-        self,
-        userId: int,
-    ) -> Any: ...
+DELETE /users/{userId}"""
 
+    def __call__(self, userId: int) -> None:
+        ...
