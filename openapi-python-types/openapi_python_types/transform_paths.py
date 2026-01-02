@@ -17,6 +17,7 @@ from .ast_utils import (
     make_overload_method,
     make_typed_dict,
     literal_type,
+    not_required_type,
 )
 from .context import TransformOptions, GeneratorContext
 from .transform_schema import transform_schema_object
@@ -216,7 +217,6 @@ def _generate_query_params_dict(
     for param_name, param_type in query_params:
         if param_name not in required_params:
             options.ctx.add_import("NotRequired")
-            from .ast_utils import not_required_type
             param_type = not_required_type(param_type)
         fields.append((param_name, param_type))
     

@@ -239,7 +239,7 @@ def make_overload_method(
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
-        decorator_list=[make_name("overload")],  # Use simple name, not attribute
+        decorator_list=[make_name("overload")],  # Use simple name since 'overload' is imported directly
         returns=return_type,
     )
     
