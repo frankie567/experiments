@@ -295,41 +295,44 @@ def _create_overload_for_operation(
     """Create an @overload method for an operation."""
     options.ctx.add_import("Literal")
     
-    # Build parameters list
-    params: list[tuple[str, ast.expr]] = []
+    # Build positional parameters list (method and path)
+    positional_params: list[tuple[str, ast.expr]] = []
     
     # Method parameter - Literal["GET"], etc.
     method_literal = literal_type([make_constant(method.upper())])
-    params.append(("method", method_literal))
+    positional_params.append(("method", method_literal))
     
     # Path parameter - Literal["/users/{id}"]
     path_literal = literal_type([make_constant(path)])
-    params.append(("path", path_literal))
+    positional_params.append(("path", path_literal))
+    
+    # Build keyword-only parameters (path_params, query_params, body)
+    kwonly_params: list[tuple[str, ast.expr]] = []
     
     # Path params - either the TypedDict type or None
     if path_params_type:
-        params.append(("path_params", path_params_type))
+        kwonly_params.append(("path_params", path_params_type))
     else:
-        params.append(("path_params", make_constant(None)))
+        kwonly_params.append(("path_params", make_constant(None)))
     
     # Query params - either the TypedDict type or None
     if query_params_type:
-        params.append(("query_params", query_params_type))
+        kwonly_params.append(("query_params", query_params_type))
     else:
-        params.append(("query_params", make_constant(None)))
+        kwonly_params.append(("query_params", make_constant(None)))
     
     # Body - either the body type or None
     if body_type:
-        params.append(("body", body_type))
+        kwonly_params.append(("body", body_type))
     else:
-        params.append(("body", make_constant(None)))
+        kwonly_params.append(("body", make_constant(None)))
     
-    # Return the response type (not None anymore!)
-    return make_overload_method("__call__", params, response_type)
+    # Return the response type
+    return make_overload_method("__call__", positional_params, kwonly_params, response_type)
 
 
 def create_request_class(overload_methods: list[ast.FunctionDef], ctx: GeneratorContext) -> ast.ClassDef:
-    """Create the Request Protocol class with all @overload methods and an implementation."""
+    """Create the Client Protocol class with all @overload methods and an implementation."""
     # Ensure imports
     ctx.add_import("Any")
     ctx.add_import("Protocol")
@@ -343,12 +346,13 @@ def create_request_class(overload_methods: list[ast.FunctionDef], ctx: Generator
                 ast.arg(arg="self", annotation=None),
                 ast.arg(arg="method", annotation=make_name("str")),
                 ast.arg(arg="path", annotation=make_name("str")),
+            ],
+            kwonlyargs=[
                 ast.arg(arg="path_params", annotation=any_type()),
                 ast.arg(arg="query_params", annotation=any_type()),
                 ast.arg(arg="body", annotation=any_type()),
             ],
-            kwonlyargs=[],
-            kw_defaults=[],
+            kw_defaults=[None, None, None],
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
@@ -358,7 +362,7 @@ def create_request_class(overload_methods: list[ast.FunctionDef], ctx: Generator
     
     # Create as Protocol instead of regular class
     return ast.ClassDef(
-        name="Request",
+        name="Client",
         bases=[make_name("Protocol")],
         keywords=[],
         body=overload_methods + [impl_method],

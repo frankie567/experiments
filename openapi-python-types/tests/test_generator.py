@@ -78,7 +78,7 @@ components:
 
 
 def test_operation_protocol():
-    """Test generating Request Protocol with @overload methods."""
+    """Test generating Client Protocol with @overload methods."""
     spec = """
 openapi: 3.0.0
 info:
@@ -105,8 +105,8 @@ paths:
     
     result = generate_types(spec)
     
-    # Check for Request Protocol with @overload
-    assert "class Request(Protocol):" in result
+    # Check for Client Protocol with @overload
+    assert "class Client(Protocol):" in result
     assert "@overload" in result
     assert "def __call__" in result
     
@@ -117,7 +117,8 @@ paths:
     # Check for the overload with correct parameters and response type
     assert "method: Literal['GET']" in result
     assert "path: Literal['/items/{id}']" in result
-    assert "path_params: GetitemPathParams" in result
+    # Check for keyword-only marker
+    assert "*, path_params: GetitemPathParams" in result
     assert "-> Dict[str, Any]:" in result  # Response type for object schema
 
 

@@ -38,27 +38,27 @@ class UpdateuserPathParams(TypedDict):
 class DeleteuserPathParams(TypedDict):
     userId: int
 
-class Request(Protocol):
+class Client(Protocol):
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users'], path_params: None, query_params: ListusersQueryParams, body: None) -> List[User]:
+    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, path_params: None, query_params: ListusersQueryParams, body: None) -> List[User]:
         ...
 
     @overload
-    def __call__(self, method: Literal['POST'], path: Literal['/users'], path_params: None, query_params: None, body: UserCreate) -> User:
+    def __call__(self, method: Literal['POST'], path: Literal['/users'], *, path_params: None, query_params: None, body: UserCreate) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], path_params: GetuserPathParams, query_params: None, body: None) -> User:
+    def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParams, query_params: None, body: None) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> User:
+    def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
+    def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
         ...
 
-    def __call__(self, method: str, path: str, path_params: Any, query_params: Any, body: Any) -> Any:
+    def __call__(self, method: str, path: str, *, path_params: Any, query_params: Any, body: Any) -> Any:
         ...

@@ -210,13 +210,15 @@ def make_type_alias(name: str, value: ast.expr) -> ast.Assign:
 def make_overload_method(
     method_name: str,
     params: list[tuple[str, ast.expr]],  # (name, type_annotation)
+    kwonly_params: list[tuple[str, ast.expr]],  # (name, type_annotation) for keyword-only
     return_type: ast.expr,
 ) -> ast.FunctionDef:
     """Create an @overload decorated method.
     
     Args:
         method_name: Name of the method (e.g., "__init__")
-        params: List of (param_name, type_annotation) tuples
+        params: List of (param_name, type_annotation) tuples for positional params
+        kwonly_params: List of (param_name, type_annotation) tuples for keyword-only params
         return_type: Return type annotation
         
     Returns:
@@ -225,8 +227,14 @@ def make_overload_method(
     # Create function arguments
     args = [ast.arg(arg="self", annotation=None)]  # Always include self
     
+    # Add positional parameters
     for param_name, param_type in params:
         args.append(ast.arg(arg=param_name, annotation=param_type))
+    
+    # Add keyword-only parameters
+    kwonlyargs = []
+    for param_name, param_type in kwonly_params:
+        kwonlyargs.append(ast.arg(arg=param_name, annotation=param_type))
     
     # Create the function definition
     func_def = ast.FunctionDef(
@@ -234,8 +242,8 @@ def make_overload_method(
         args=ast.arguments(
             posonlyargs=[],
             args=args,
-            kwonlyargs=[],
-            kw_defaults=[],
+            kwonlyargs=kwonlyargs,
+            kw_defaults=[None] * len(kwonlyargs),  # All keyword-only args have no defaults
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
