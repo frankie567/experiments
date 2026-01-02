@@ -263,7 +263,7 @@ def _get_response_type(operation: dict[str, Any], options: TransformOptions) -> 
             if "$ref" in response:
                 response = options.ctx.resolve_ref(response["$ref"])
             
-            # 204 No Content has no body
+            # 204 No Content returns None since there's no response body
             if status_code == "204":
                 return make_constant(None)
             
@@ -351,7 +351,7 @@ def create_request_class(overload_methods: list[ast.FunctionDef], ctx: Generator
             kw_defaults=[],
             defaults=[],
         ),
-        body=[ast.Expr(value=ast.Constant(value=...))],
+        body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
         decorator_list=[],
         returns=any_type(),
     )
