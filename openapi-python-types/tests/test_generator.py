@@ -55,7 +55,7 @@ components:
 
 
 def test_array_schema():
-    """Test generating List types for arrays."""
+    """Test generating list types for arrays."""
     spec = """
 openapi: 3.0.0
 info:
@@ -74,7 +74,7 @@ components:
     
     result = generate_types(spec)
     
-    assert "List[str]" in result
+    assert "list[str]" in result
 
 
 def test_operation_protocol():
@@ -119,7 +119,7 @@ paths:
     assert "path: Literal['/items/{id}']" in result
     # Check for keyword-only marker
     assert "*, path_params: GetitemPathParams" in result
-    assert "-> Dict[str, Any]:" in result  # Response type for object schema
+    assert "-> dict[str, Any]:" in result  # Response type for object schema (modern syntax)
 
 
 def test_json_format():

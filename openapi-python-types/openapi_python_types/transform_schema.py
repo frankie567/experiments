@@ -101,7 +101,7 @@ def transform_schema_object(schema: Any, options: TransformOptions) -> ast.expr:
         if len(types) == 1:
             return types[0]
         
-        options.ctx.add_import("Union")
+        # No import needed for X | Y syntax
         return union_type(types)
     
     # Handle specific types
@@ -156,7 +156,7 @@ def _transform_boolean_type(schema: dict[str, Any], options: TransformOptions) -
 
 def _transform_array_type(schema: dict[str, Any], options: TransformOptions) -> ast.expr:
     """Transform an array type."""
-    options.ctx.add_import("List")
+    # No import needed for list[X] syntax
     
     items = schema.get("items")
     if items is None:
@@ -172,7 +172,7 @@ def _transform_array_type(schema: dict[str, Any], options: TransformOptions) -> 
 def _transform_object_type(schema: dict[str, Any], options: TransformOptions) -> ast.expr:
     """Transform an object type.
     
-    For inline objects, we return Dict[str, Any].
+    For inline objects, we return dict[str, Any].
     Named objects are handled separately as TypedDict definitions.
     """
     properties = schema.get("properties", {})
@@ -181,18 +181,18 @@ def _transform_object_type(schema: dict[str, Any], options: TransformOptions) ->
     # If this is an empty object with no properties
     if not properties and additional_properties is None:
         if options.ctx.empty_objects_unknown:
-            options.ctx.add_import("Dict")
+            # No import needed for dict[str, Any] syntax
             options.ctx.add_import("Any")
             return dict_type(str_type(), any_type())
         else:
             # Empty object - will be handled as empty TypedDict if named
-            options.ctx.add_import("Dict")
+            # No import needed for dict[str, Any] syntax
             options.ctx.add_import("Any")
             return dict_type(str_type(), any_type())
     
-    # For inline objects, use Dict[str, Any]
+    # For inline objects, use dict[str, Any]
     # (Named objects with properties will be converted to TypedDict at a higher level)
-    options.ctx.add_import("Dict")
+    # No import needed for dict[str, Any] syntax
     options.ctx.add_import("Any")
     base_type = dict_type(str_type(), any_type())
     
@@ -224,7 +224,7 @@ def _transform_any_of(schemas: list[Any], options: TransformOptions) -> ast.expr
     if len(schemas) == 1:
         return transform_schema_object(schemas[0], options)
     
-    options.ctx.add_import("Union")
+    # No import needed for X | Y syntax
     types = [transform_schema_object(s, options) for s in schemas]
     return union_type(types)
 
@@ -247,7 +247,7 @@ def _handle_nullable(schema: dict[str, Any], base_type: ast.expr, options: Trans
         options: Transform options
         
     Returns:
-        The type, wrapped with Optional if nullable
+        The type, wrapped with X | None if nullable
     """
     # Check for nullable in OpenAPI 3.0
     is_nullable = schema.get("nullable", False)
@@ -258,7 +258,7 @@ def _handle_nullable(schema: dict[str, Any], base_type: ast.expr, options: Trans
         is_nullable = True
     
     if is_nullable:
-        options.ctx.add_import("Optional")
+        # No import needed for X | None syntax
         return optional_type(base_type)
     
     return base_type

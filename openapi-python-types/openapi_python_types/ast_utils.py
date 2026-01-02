@@ -56,25 +56,33 @@ def any_type() -> ast.Name:
 
 
 def list_type(item_type: ast.expr) -> ast.Subscript:
-    """Create List[T] type."""
-    return make_subscript(make_name("List"), item_type)
+    """Create list[T] type (modern Python 3.9+ syntax)."""
+    return make_subscript(make_name("list"), item_type)
 
 
 def dict_type(key_type: ast.expr, value_type: ast.expr) -> ast.Subscript:
-    """Create Dict[K, V] type."""
+    """Create dict[K, V] type (modern Python 3.9+ syntax)."""
     tuple_node = make_tuple([key_type, value_type])
-    return make_subscript(make_name("Dict"), tuple_node)
+    return make_subscript(make_name("dict"), tuple_node)
 
 
-def optional_type(item_type: ast.expr) -> ast.Subscript:
-    """Create Optional[T] type."""
-    return make_subscript(make_name("Optional"), item_type)
+def optional_type(item_type: ast.expr) -> ast.BinOp:
+    """Create X | None type (modern Python 3.10+ syntax)."""
+    return ast.BinOp(left=item_type, op=ast.BitOr(), right=make_constant(None))
 
 
-def union_type(types: list[ast.expr]) -> ast.Subscript:
-    """Create Union[...] type."""
-    tuple_node = make_tuple(types)
-    return make_subscript(make_name("Union"), tuple_node)
+def union_type(types: list[ast.expr]) -> ast.BinOp | ast.expr:
+    """Create X | Y | Z type (modern Python 3.10+ syntax)."""
+    if len(types) == 0:
+        return any_type()
+    if len(types) == 1:
+        return types[0]
+    
+    # Build union using BinOp with BitOr
+    result = types[0]
+    for t in types[1:]:
+        result = ast.BinOp(left=result, op=ast.BitOr(), right=t)
+    return result
 
 
 def literal_type(values: list[ast.expr]) -> ast.Subscript:

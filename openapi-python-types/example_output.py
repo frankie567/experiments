@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, NotRequired, Protocol, TypedDict, overload
+from typing import Any, Literal, NotRequired, Protocol, TypedDict, overload
 
 class User(TypedDict):
     """A user in the system"""
@@ -41,7 +41,7 @@ class DeleteuserPathParams(TypedDict):
 class Client(Protocol):
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, path_params: None, query_params: ListusersQueryParams, body: None) -> List[User]:
+    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, path_params: None, query_params: ListusersQueryParams, body: None) -> list[User]:
         ...
 
     @overload
