@@ -352,7 +352,7 @@ def create_request_class(overload_methods: list[ast.FunctionDef], ctx: Generator
                 ast.arg(arg="query_params", annotation=any_type()),
                 ast.arg(arg="body", annotation=any_type()),
             ],
-            kw_defaults=[None, None, None],
+            kw_defaults=[None] * 3,  # All keyword-only args are required
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)

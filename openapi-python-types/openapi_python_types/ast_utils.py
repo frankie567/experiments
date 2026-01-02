@@ -243,7 +243,7 @@ def make_overload_method(
             posonlyargs=[],
             args=args,
             kwonlyargs=kwonlyargs,
-            kw_defaults=[None] * len(kwonlyargs),  # All keyword-only args have no defaults
+            kw_defaults=[None] * len(kwonlyargs),  # All keyword-only args are required (no default values)
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
