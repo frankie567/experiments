@@ -68,7 +68,7 @@ def dict_type(key_type: ast.expr, value_type: ast.expr) -> ast.Subscript:
 
 def optional_type(item_type: ast.expr) -> ast.BinOp:
     """Create X | None type (modern Python 3.10+ syntax)."""
-    return ast.BinOp(left=item_type, op=ast.BitOr(), right=make_constant(None))
+    return ast.BinOp(left=item_type, op=ast.BitOr(), right=make_name("None"))
 
 
 def union_type(types: list[ast.expr]) -> ast.BinOp | ast.expr:
