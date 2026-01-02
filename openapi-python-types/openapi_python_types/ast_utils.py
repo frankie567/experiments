@@ -79,8 +79,12 @@ def union_type(types: list[ast.expr]) -> ast.Subscript:
 
 def literal_type(values: list[ast.expr]) -> ast.Subscript:
     """Create Literal[...] type."""
-    tuple_node = make_tuple(values)
-    return make_subscript(make_name("Literal"), tuple_node)
+    # For single values, pass directly; for multiple, use tuple
+    if len(values) == 1:
+        slice_node = values[0]
+    else:
+        slice_node = make_tuple(values)
+    return make_subscript(make_name("Literal"), slice_node)
 
 
 def not_required_type(item_type: ast.expr) -> ast.Subscript:
@@ -201,6 +205,45 @@ def make_type_alias(name: str, value: ast.expr) -> ast.Assign:
         targets=[make_name(name)],
         value=value,
     )
+
+
+def make_overload_method(
+    method_name: str,
+    params: list[tuple[str, ast.expr]],  # (name, type_annotation)
+    return_type: ast.expr,
+) -> ast.FunctionDef:
+    """Create an @overload decorated method.
+    
+    Args:
+        method_name: Name of the method (e.g., "__init__")
+        params: List of (param_name, type_annotation) tuples
+        return_type: Return type annotation
+        
+    Returns:
+        FunctionDef with @overload decorator
+    """
+    # Create function arguments
+    args = [ast.arg(arg="self", annotation=None)]  # Always include self
+    
+    for param_name, param_type in params:
+        args.append(ast.arg(arg=param_name, annotation=param_type))
+    
+    # Create the function definition
+    func_def = ast.FunctionDef(
+        name=method_name,
+        args=ast.arguments(
+            posonlyargs=[],
+            args=args,
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
+        decorator_list=[make_name("overload")],  # Use simple name, not attribute
+        returns=return_type,
+    )
+    
+    return func_def
 
 
 def make_import_from(module: str, names: list[str]) -> ast.ImportFrom:

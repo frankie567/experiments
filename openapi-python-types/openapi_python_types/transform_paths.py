@@ -1,6 +1,7 @@
-"""Transform OpenAPI Paths Object to Protocol definitions.
+"""Transform OpenAPI Paths Object to Request class with @overload methods.
 
-This module handles the conversion of API operations to Python Protocol classes.
+This module handles the conversion of API operations to @overload methods on a 
+Request class, with proper TypedDict for path and query parameters.
 
 Reference: https://spec.openapis.org/oas/v3.1.0#paths-object
 """
@@ -12,24 +13,27 @@ from typing import Any
 from .ast_utils import (
     any_type,
     make_constant,
-    make_protocol,
-    optional_type,
+    make_name,
+    make_overload_method,
+    make_typed_dict,
+    literal_type,
 )
 from .context import TransformOptions, GeneratorContext
 from .transform_schema import transform_schema_object
 
 
 def transform_paths_object(paths: dict[str, Any], ctx: GeneratorContext) -> list[ast.stmt]:
-    """Transform the paths object to Protocol definitions.
+    """Transform the paths object to Request class with @overload methods.
     
     Args:
         paths: The paths object from OpenAPI spec
         ctx: Generator context
         
     Returns:
-        List of Protocol class definitions
+        List of TypedDict classes for parameters and Request class with overloads
     """
     nodes: list[ast.stmt] = []
+    overload_methods: list[ast.FunctionDef] = []
     
     for path, path_item in paths.items():
         if not isinstance(path_item, dict):
@@ -53,20 +57,31 @@ def transform_paths_object(paths: dict[str, Any], ctx: GeneratorContext) -> list
                 schema=operation,
             )
             
-            node = transform_operation_to_protocol(path, method, operation, options)
-            if node:
-                nodes.append(node)
+            # Generate TypedDicts and overload method
+            operation_nodes, overload_method = transform_operation_to_overload(
+                path, method, operation, options
+            )
+            
+            nodes.extend(operation_nodes)
+            if overload_method:
+                overload_methods.append(overload_method)
+    
+    # Create the Request class with all overload methods
+    if overload_methods:
+        ctx.add_import("overload")
+        request_class = create_request_class(overload_methods, ctx)
+        nodes.append(request_class)
     
     return nodes
 
 
-def transform_operation_to_protocol(
+def transform_operation_to_overload(
     path: str,
     method: str,
     operation: dict[str, Any],
     options: TransformOptions,
-) -> ast.ClassDef | None:
-    """Transform an operation to a Protocol class.
+) -> tuple[list[ast.stmt], ast.FunctionDef | None]:
+    """Transform an operation to TypedDicts and an @overload method.
     
     Args:
         path: The path (e.g., "/users/{id}")
@@ -75,83 +90,102 @@ def transform_operation_to_protocol(
         options: Transform options
         
     Returns:
-        Protocol class definition
+        Tuple of (list of TypedDict nodes, overload method)
     """
-    options.ctx.add_import("Protocol")
+    nodes: list[ast.stmt] = []
     
-    # Generate protocol name
-    protocol_name = _generate_protocol_name(path, method, operation)
+    # Generate a base name for this operation
+    operation_id = operation.get("operationId")
+    if operation_id:
+        base_name = "".join(word.capitalize() for word in re.split(r"[_\-]", operation_id))
+    else:
+        # Generate from path and method
+        path_parts = [p for p in path.split("/") if p and not p.startswith("{")]
+        path_name = "".join(word.capitalize() for word in path_parts)
+        base_name = f"{method.capitalize()}{path_name}"
     
-    # Generate docstring
-    docstring = _generate_protocol_docstring(path, method, operation)
+    # Collect path parameters
+    path_params_dict = _generate_path_params_dict(base_name, path, operation, options)
+    path_params_type = None
+    if path_params_dict:
+        nodes.append(path_params_dict)
+        path_params_type = make_name(path_params_dict.name)
     
-    # Generate parameters
-    params = _generate_protocol_params(operation, options)
+    # Collect query parameters
+    query_params_dict = _generate_query_params_dict(base_name, operation, options)
+    query_params_type = None
+    if query_params_dict:
+        nodes.append(query_params_dict)
+        query_params_type = make_name(query_params_dict.name)
     
-    # Generate return type
-    return_type = _generate_return_type(operation, options)
+    # Get body type
+    body_type = _get_body_type(operation, options)
     
-    return make_protocol(
-        name=protocol_name,
-        method_name="__call__",
-        params=params,
-        return_type=return_type,
-        docstring=docstring,
+    # Create the overload method
+    overload_method = _create_overload_for_operation(
+        method, path, path_params_type, query_params_type, body_type, options
     )
+    
+    return nodes, overload_method
 
 
-def _generate_protocol_name(path: str, method: str, operation: dict[str, Any]) -> str:
-    """Generate a name for the Protocol class.
-    
-    Priority:
-    1. Use operationId if present
-    2. Generate from path and method
-    """
-    if "operationId" in operation:
-        # Convert operationId to PascalCase
-        operation_id = operation["operationId"]
-        # Convert snake_case or camelCase to PascalCase
-        name = "".join(word.capitalize() for word in re.split(r"[_\-]", operation_id))
-        return f"{name}Protocol"
-    
-    # Generate from path and method
-    # Remove leading/trailing slashes and path parameters
-    path_parts = [p for p in path.split("/") if p and not p.startswith("{")]
-    path_name = "".join(word.capitalize() for word in path_parts)
-    method_name = method.capitalize()
-    
-    return f"{method_name}{path_name}Protocol"
-
-
-def _generate_protocol_docstring(path: str, method: str, operation: dict[str, Any]) -> str:
-    """Generate docstring for the Protocol."""
-    parts = []
-    
-    # Add summary or description
-    if "summary" in operation:
-        parts.append(operation["summary"])
-    elif "description" in operation:
-        parts.append(operation["description"])
-    
-    # Add HTTP method and path
-    parts.append(f"{method.upper()} {path}")
-    
-    return "\n\n".join(parts)
-
-
-def _generate_protocol_params(
+def _generate_path_params_dict(
+    base_name: str,
+    path: str,
     operation: dict[str, Any],
     options: TransformOptions,
-) -> list[tuple[str, ast.expr, Any]]:
-    """Generate parameters for the Protocol's __call__ method.
+) -> ast.ClassDef | None:
+    """Generate TypedDict for path parameters."""
+    # Extract path parameters from the path string
+    path_param_names = set(re.findall(r'\{(\w+)\}', path))
     
-    Returns:
-        List of (param_name, type_annotation, default_value) tuples
-    """
-    params: list[tuple[str, ast.expr, Any]] = []
+    if not path_param_names:
+        return None
     
-    # Handle parameters (path, query, header, cookie)
+    # Find parameter definitions
     parameters = operation.get("parameters", [])
+    path_params = {}
+    
+    for param in parameters:
+        if not isinstance(param, dict):
+            continue
+        
+        # Handle $ref
+        if "$ref" in param:
+            param = options.ctx.resolve_ref(param["$ref"])
+        
+        param_name = param.get("name")
+        param_in = param.get("in")
+        
+        if param_in == "path" and param_name in path_param_names:
+            param_schema = param.get("schema", {})
+            param_type = transform_schema_object(param_schema, options)
+            path_params[param_name] = param_type
+    
+    # If we couldn't find types for all path params, use str as fallback
+    for param_name in path_param_names:
+        if param_name not in path_params:
+            path_params[param_name] = make_name("str")
+    
+    if not path_params:
+        return None
+    
+    options.ctx.add_import("TypedDict")
+    
+    fields = [(name, type_ann) for name, type_ann in path_params.items()]
+    return make_typed_dict(f"{base_name}PathParams", fields)
+
+
+def _generate_query_params_dict(
+    base_name: str,
+    operation: dict[str, Any],
+    options: TransformOptions,
+) -> ast.ClassDef | None:
+    """Generate TypedDict for query parameters."""
+    parameters = operation.get("parameters", [])
+    query_params = []
+    required_params = set()
+    
     for param in parameters:
         if not isinstance(param, dict):
             continue
@@ -163,83 +197,129 @@ def _generate_protocol_params(
         param_name = param.get("name")
         param_in = param.get("in")
         param_required = param.get("required", False)
-        param_schema = param.get("schema", {})
         
-        if not param_name:
-            continue
-        
-        # Generate type annotation
-        param_type = transform_schema_object(param_schema, options)
-        
-        # Make optional if not required
-        if not param_required and param_in != "path":  # path params are always required
-            options.ctx.add_import("Optional")
-            param_type = optional_type(param_type)
-            default_value = None
-        else:
-            default_value = None  # No default for required params
-        
-        params.append((param_name, param_type, default_value))
+        if param_in == "query":
+            param_schema = param.get("schema", {})
+            param_type = transform_schema_object(param_schema, options)
+            query_params.append((param_name, param_type))
+            
+            if param_required:
+                required_params.add(param_name)
     
-    # Handle request body
+    if not query_params:
+        return None
+    
+    options.ctx.add_import("TypedDict")
+    
+    # Wrap optional parameters with NotRequired
+    fields = []
+    for param_name, param_type in query_params:
+        if param_name not in required_params:
+            options.ctx.add_import("NotRequired")
+            from .ast_utils import not_required_type
+            param_type = not_required_type(param_type)
+        fields.append((param_name, param_type))
+    
+    return make_typed_dict(f"{base_name}QueryParams", fields)
+
+
+def _get_body_type(operation: dict[str, Any], options: TransformOptions) -> ast.expr | None:
+    """Get the body type for an operation."""
     request_body = operation.get("requestBody")
-    if request_body:
-        # Handle $ref
-        if "$ref" in request_body:
-            request_body = options.ctx.resolve_ref(request_body["$ref"])
-        
-        content = request_body.get("content", {})
-        body_required = request_body.get("required", False)
-        
-        # Look for application/json content type
-        if "application/json" in content:
-            body_schema = content["application/json"].get("schema", {})
-            body_type = transform_schema_object(body_schema, options)
-            
-            if not body_required:
-                options.ctx.add_import("Optional")
-                body_type = optional_type(body_type)
-                default_value = None
-            else:
-                default_value = None
-            
-            params.append(("body", body_type, default_value))
+    if not request_body:
+        return None
     
-    return params
+    # Handle $ref
+    if "$ref" in request_body:
+        request_body = options.ctx.resolve_ref(request_body["$ref"])
+    
+    content = request_body.get("content", {})
+    
+    # Look for application/json content type
+    if "application/json" in content:
+        body_schema = content["application/json"].get("schema", {})
+        return transform_schema_object(body_schema, options)
+    
+    return None
 
 
-def _generate_return_type(operation: dict[str, Any], options: TransformOptions) -> ast.expr:
-    """Generate return type annotation for the operation.
+def _create_overload_for_operation(
+    method: str,
+    path: str,
+    path_params_type: ast.expr | None,
+    query_params_type: ast.expr | None,
+    body_type: ast.expr | None,
+    options: TransformOptions,
+) -> ast.FunctionDef:
+    """Create an @overload method for an operation."""
+    options.ctx.add_import("Literal")
     
-    Looks at the success response (200, 201, 204, etc.) and generates
-    the appropriate type.
-    """
-    responses = operation.get("responses", {})
+    # Build parameters list
+    params: list[tuple[str, ast.expr]] = []
     
-    # Try common success status codes in order of preference
-    for status_code in ["200", "201", "202", "204"]:
-        if status_code in responses:
-            response = responses[status_code]
-            
-            # Handle $ref
-            if "$ref" in response:
-                response = options.ctx.resolve_ref(response["$ref"])
-            
-            # 204 No Content has no body
-            if status_code == "204":
-                return make_constant(None)
-            
-            # Check for content
-            content = response.get("content", {})
-            
-            # Look for application/json
-            if "application/json" in content:
-                response_schema = content["application/json"].get("schema", {})
-                return transform_schema_object(response_schema, options)
-            
-            # No content type specified
-            return any_type()
+    # Method parameter - Literal["GET"], etc.
+    method_literal = literal_type([make_constant(method.upper())])
+    params.append(("method", method_literal))
     
-    # No success response found, use Any
-    options.ctx.add_import("Any")
-    return any_type()
+    # Path parameter - Literal["/users/{id}"]
+    path_literal = literal_type([make_constant(path)])
+    params.append(("path", path_literal))
+    
+    # Path params - either the TypedDict type or None
+    if path_params_type:
+        params.append(("path_params", path_params_type))
+    else:
+        params.append(("path_params", make_constant(None)))
+    
+    # Query params - either the TypedDict type or None
+    if query_params_type:
+        params.append(("query_params", query_params_type))
+    else:
+        params.append(("query_params", make_constant(None)))
+    
+    # Body - either the body type or None
+    if body_type:
+        params.append(("body", body_type))
+    else:
+        params.append(("body", make_constant(None)))
+    
+    # Return type is None for __init__
+    return_type = make_constant(None)
+    
+    return make_overload_method("__init__", params, return_type)
+
+
+def create_request_class(overload_methods: list[ast.FunctionDef], ctx: GeneratorContext) -> ast.ClassDef:
+    """Create the Request class with all @overload methods and an implementation."""
+    # Ensure Any is imported for the implementation
+    ctx.add_import("Any")
+    
+    # Add the actual __init__ implementation after all overloads
+    impl_method = ast.FunctionDef(
+        name="__init__",
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[
+                ast.arg(arg="self", annotation=None),
+                ast.arg(arg="method", annotation=make_name("str")),
+                ast.arg(arg="path", annotation=make_name("str")),
+                ast.arg(arg="path_params", annotation=any_type()),
+                ast.arg(arg="query_params", annotation=any_type()),
+                ast.arg(arg="body", annotation=any_type()),
+            ],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=[ast.Pass()],
+        decorator_list=[],
+        returns=make_constant(None),
+    )
+    
+    return ast.ClassDef(
+        name="Request",
+        bases=[],
+        keywords=[],
+        body=overload_methods + [impl_method],
+        decorator_list=[],
+    )

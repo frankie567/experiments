@@ -1,4 +1,4 @@
-from typing import List, Literal, NotRequired, Optional, Protocol, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 class User(TypedDict):
     """A user in the system"""
@@ -25,42 +25,40 @@ class UserUpdate(TypedDict):
     role: NotRequired[UserRole]
 UserRole = Literal['admin', 'user', 'guest']
 
-class ListusersProtocol(Protocol):
-    """List all users
+class ListusersQueryParams(TypedDict):
+    limit: NotRequired[int]
+    offset: NotRequired[int]
 
-GET /users"""
+class GetuserPathParams(TypedDict):
+    userId: int
 
-    def __call__(self, limit: Optional[int], offset: Optional[int]) -> List[User]:
+class UpdateuserPathParams(TypedDict):
+    userId: int
+
+class DeleteuserPathParams(TypedDict):
+    userId: int
+
+class Request:
+
+    @overload
+    def __init__(self, method: Literal['GET'], path: Literal['/users'], path_params: None, query_params: ListusersQueryParams, body: None) -> None:
         ...
 
-class CreateuserProtocol(Protocol):
-    """Create a new user
-
-POST /users"""
-
-    def __call__(self, body: UserCreate) -> User:
+    @overload
+    def __init__(self, method: Literal['POST'], path: Literal['/users'], path_params: None, query_params: None, body: UserCreate) -> None:
         ...
 
-class GetuserProtocol(Protocol):
-    """Get a user by ID
-
-GET /users/{userId}"""
-
-    def __call__(self, userId: int) -> User:
+    @overload
+    def __init__(self, method: Literal['GET'], path: Literal['/users/{userId}'], path_params: GetuserPathParams, query_params: None, body: None) -> None:
         ...
 
-class UpdateuserProtocol(Protocol):
-    """Update a user
-
-PUT /users/{userId}"""
-
-    def __call__(self, userId: int, body: UserUpdate) -> User:
+    @overload
+    def __init__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> None:
         ...
 
-class DeleteuserProtocol(Protocol):
-    """Delete a user
-
-DELETE /users/{userId}"""
-
-    def __call__(self, userId: int) -> None:
+    @overload
+    def __init__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
         ...
+
+    def __init__(self, method: str, path: str, path_params: Any, query_params: Any, body: Any) -> None:
+        pass
