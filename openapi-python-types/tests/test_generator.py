@@ -78,7 +78,7 @@ components:
 
 
 def test_operation_protocol():
-    """Test generating Request class with @overload methods."""
+    """Test generating Request Protocol with @overload methods."""
     spec = """
 openapi: 3.0.0
 info:
@@ -105,19 +105,20 @@ paths:
     
     result = generate_types(spec)
     
-    # Check for Request class with @overload
-    assert "class Request:" in result
+    # Check for Request Protocol with @overload
+    assert "class Request(Protocol):" in result
     assert "@overload" in result
-    assert "def __init__" in result
+    assert "def __call__" in result
     
     # Check for path params TypedDict
     assert "class GetitemPathParams(TypedDict):" in result
     assert "id: int" in result
     
-    # Check for the overload with correct parameters
+    # Check for the overload with correct parameters and response type
     assert "method: Literal['GET']" in result
     assert "path: Literal['/items/{id}']" in result
     assert "path_params: GetitemPathParams" in result
+    assert "-> Dict[str, Any]:" in result  # Response type for object schema
 
 
 def test_json_format():

@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, List, Literal, NotRequired, Protocol, TypedDict, overload
 
 class User(TypedDict):
     """A user in the system"""
@@ -38,27 +38,27 @@ class UpdateuserPathParams(TypedDict):
 class DeleteuserPathParams(TypedDict):
     userId: int
 
-class Request:
+class Request(Protocol):
 
     @overload
-    def __init__(self, method: Literal['GET'], path: Literal['/users'], path_params: None, query_params: ListusersQueryParams, body: None) -> None:
+    def __call__(self, method: Literal['GET'], path: Literal['/users'], path_params: None, query_params: ListusersQueryParams, body: None) -> List[User]:
         ...
 
     @overload
-    def __init__(self, method: Literal['POST'], path: Literal['/users'], path_params: None, query_params: None, body: UserCreate) -> None:
+    def __call__(self, method: Literal['POST'], path: Literal['/users'], path_params: None, query_params: None, body: UserCreate) -> User:
         ...
 
     @overload
-    def __init__(self, method: Literal['GET'], path: Literal['/users/{userId}'], path_params: GetuserPathParams, query_params: None, body: None) -> None:
+    def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], path_params: GetuserPathParams, query_params: None, body: None) -> User:
         ...
 
     @overload
-    def __init__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> None:
+    def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> User:
         ...
 
     @overload
-    def __init__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
+    def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
         ...
 
-    def __init__(self, method: str, path: str, path_params: Any, query_params: Any, body: Any) -> None:
-        pass
+    def __call__(self, method: str, path: str, path_params: Any, query_params: Any, body: Any) -> Any:
+        ...

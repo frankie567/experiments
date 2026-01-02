@@ -122,9 +122,12 @@ def transform_operation_to_overload(
     # Get body type
     body_type = _get_body_type(operation, options)
     
+    # Get response type
+    response_type = _get_response_type(operation, options)
+    
     # Create the overload method
     overload_method = _create_overload_for_operation(
-        method, path, path_params_type, query_params_type, body_type, options
+        method, path, path_params_type, query_params_type, body_type, response_type, options
     )
     
     return nodes, overload_method
@@ -243,12 +246,50 @@ def _get_body_type(operation: dict[str, Any], options: TransformOptions) -> ast.
     return None
 
 
+def _get_response_type(operation: dict[str, Any], options: TransformOptions) -> ast.expr:
+    """Get the response type for an operation.
+    
+    Looks at the success response (200, 201, 204, etc.) and generates
+    the appropriate type.
+    """
+    responses = operation.get("responses", {})
+    
+    # Try common success status codes in order of preference
+    for status_code in ["200", "201", "202", "204"]:
+        if status_code in responses:
+            response = responses[status_code]
+            
+            # Handle $ref
+            if "$ref" in response:
+                response = options.ctx.resolve_ref(response["$ref"])
+            
+            # 204 No Content has no body
+            if status_code == "204":
+                return make_constant(None)
+            
+            # Check for content
+            content = response.get("content", {})
+            
+            # Look for application/json
+            if "application/json" in content:
+                response_schema = content["application/json"].get("schema", {})
+                return transform_schema_object(response_schema, options)
+            
+            # No content type specified - return None
+            return make_constant(None)
+    
+    # No success response found, use Any
+    options.ctx.add_import("Any")
+    return any_type()
+
+
 def _create_overload_for_operation(
     method: str,
     path: str,
     path_params_type: ast.expr | None,
     query_params_type: ast.expr | None,
     body_type: ast.expr | None,
+    response_type: ast.expr,
     options: TransformOptions,
 ) -> ast.FunctionDef:
     """Create an @overload method for an operation."""
@@ -283,20 +324,19 @@ def _create_overload_for_operation(
     else:
         params.append(("body", make_constant(None)))
     
-    # Return type is None for __init__
-    return_type = make_constant(None)
-    
-    return make_overload_method("__init__", params, return_type)
+    # Return the response type (not None anymore!)
+    return make_overload_method("__call__", params, response_type)
 
 
 def create_request_class(overload_methods: list[ast.FunctionDef], ctx: GeneratorContext) -> ast.ClassDef:
-    """Create the Request class with all @overload methods and an implementation."""
-    # Ensure Any is imported for the implementation
+    """Create the Request Protocol class with all @overload methods and an implementation."""
+    # Ensure imports
     ctx.add_import("Any")
+    ctx.add_import("Protocol")
     
-    # Add the actual __init__ implementation after all overloads
+    # Add the actual __call__ implementation after all overloads
     impl_method = ast.FunctionDef(
-        name="__init__",
+        name="__call__",
         args=ast.arguments(
             posonlyargs=[],
             args=[
@@ -311,14 +351,15 @@ def create_request_class(overload_methods: list[ast.FunctionDef], ctx: Generator
             kw_defaults=[],
             defaults=[],
         ),
-        body=[ast.Pass()],
+        body=[ast.Expr(value=ast.Constant(value=...))],
         decorator_list=[],
-        returns=make_constant(None),
+        returns=any_type(),
     )
     
+    # Create as Protocol instead of regular class
     return ast.ClassDef(
         name="Request",
-        bases=[],
+        bases=[make_name("Protocol")],
         keywords=[],
         body=overload_methods + [impl_method],
         decorator_list=[],
