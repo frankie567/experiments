@@ -217,8 +217,15 @@ def _generate_query_params_dict(
 ) -> tuple[ast.ClassDef | None, bool]:
     """Generate TypedDict for query parameters.
     
+    Args:
+        base_name: Base name for the TypedDict class
+        operation: The operation object from OpenAPI spec
+        options: Transform options with context
+    
     Returns:
-        Tuple of (TypedDict class or None, whether all fields are optional)
+        Tuple of (TypedDict class or None, bool):
+        - TypedDict class definition if query parameters exist, None otherwise
+        - True if all query parameters are optional (NotRequired), False if any are required
     """
     parameters = operation.get("parameters", [])
     query_params = []

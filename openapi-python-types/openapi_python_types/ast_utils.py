@@ -228,8 +228,8 @@ def make_overload_method(
 
     Args:
         method_name: Name of the method (e.g., "__init__")
-        params: List of (param_name, type_annotation) tuples for positional params
-        kwonly_params: List of (param_name, type_annotation, has_default) tuples for keyword-only params
+        params: list of (param_name, type_annotation) tuples for positional params
+        kwonly_params: list of (param_name, type_annotation, has_default) tuples for keyword-only params
         return_type: Return type annotation
         async_def: Whether to generate an async overload
 
