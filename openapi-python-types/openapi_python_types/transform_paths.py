@@ -136,7 +136,7 @@ def transform_operation_to_overload(
         path_params_type = make_name(path_params_dict.name)
 
     # Collect query parameters
-    query_params_dict = _generate_query_params_dict(base_name, operation, options)
+    query_params_dict, query_params_all_optional = _generate_query_params_dict(base_name, operation, options)
     query_params_type = None
     if query_params_dict:
         nodes.append(query_params_dict)
@@ -154,6 +154,7 @@ def transform_operation_to_overload(
         path,
         path_params_type,
         query_params_type,
+        query_params_all_optional,
         body_type,
         response_type,
         options,
@@ -213,8 +214,12 @@ def _generate_query_params_dict(
     base_name: str,
     operation: dict[str, Any],
     options: TransformOptions,
-) -> ast.ClassDef | None:
-    """Generate TypedDict for query parameters."""
+) -> tuple[ast.ClassDef | None, bool]:
+    """Generate TypedDict for query parameters.
+    
+    Returns:
+        Tuple of (TypedDict class or None, whether all fields are optional)
+    """
     parameters = operation.get("parameters", [])
     query_params = []
     required_params = set()
@@ -240,7 +245,7 @@ def _generate_query_params_dict(
                 required_params.add(param_name)
 
     if not query_params:
-        return None
+        return None, False
 
     options.ctx.add_import("TypedDict")
 
@@ -252,7 +257,10 @@ def _generate_query_params_dict(
             param_type = not_required_type(param_type)
         fields.append((param_name, param_type))
 
-    return make_typed_dict(f"{base_name}QueryParams", fields)
+    # Check if all fields are optional (no required params)
+    all_optional = len(required_params) == 0
+
+    return make_typed_dict(f"{base_name}QueryParams", fields), all_optional
 
 
 def _get_body_type(
@@ -321,6 +329,7 @@ def _create_overload_for_operation(
     path: str,
     path_params_type: ast.expr | None,
     query_params_type: ast.expr | None,
+    query_params_all_optional: bool,
     body_type: ast.expr | None,
     response_type: ast.expr,
     options: TransformOptions,
@@ -341,19 +350,21 @@ def _create_overload_for_operation(
 
     # Build keyword-only parameters (path_params, query_params, body)
     # Only include parameters that are actually needed (not None)
-    kwonly_params: list[tuple[str, ast.expr]] = []
+    # For each parameter, include a flag indicating if it has a default value
+    kwonly_params: list[tuple[str, ast.expr, bool]] = []
 
     # Path params - only add if there are path parameters
     if path_params_type:
-        kwonly_params.append(("path_params", path_params_type))
+        kwonly_params.append(("path_params", path_params_type, False))
 
     # Query params - only add if there are query parameters
+    # If all query params are optional (NotRequired), make the parameter itself optional
     if query_params_type:
-        kwonly_params.append(("query_params", query_params_type))
+        kwonly_params.append(("query_params", query_params_type, query_params_all_optional))
 
     # Body - only add if there's a request body
     if body_type:
-        kwonly_params.append(("body", body_type))
+        kwonly_params.append(("body", body_type, False))
 
     # Return the response type
     sync_method = make_overload_method(

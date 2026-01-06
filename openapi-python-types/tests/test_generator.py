@@ -174,3 +174,49 @@ components:
 
     assert "role: NotRequired[Role]" in result
     assert "Role = Literal['admin', 'user']" in result
+
+
+def test_optional_query_params():
+    """Test that query parameters are optional when all fields are NotRequired."""
+    spec = """
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+"""
+
+    result = generate_types(spec)
+
+    # Check that query params TypedDict is created with NotRequired fields
+    assert "class ListusersQueryParams(TypedDict):" in result
+    assert "limit: NotRequired[int]" in result
+    assert "offset: NotRequired[int]" in result
+    
+    # Check that query_params parameter has a default value (=...) in the overload
+    # This makes it optional to pass
+    assert "query_params: ListusersQueryParams=..." in result
+    
+    # Verify the implementation still has the optional parameter
+    assert "query_params: Any | None=None" in result

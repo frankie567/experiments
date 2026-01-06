@@ -219,8 +219,8 @@ def make_overload_method(
     method_name: str,
     params: list[tuple[str, ast.expr]],  # (name, type_annotation)
     kwonly_params: list[
-        tuple[str, ast.expr]
-    ],  # (name, type_annotation) for keyword-only
+        tuple[str, ast.expr, bool]
+    ],  # (name, type_annotation, has_default) for keyword-only
     return_type: ast.expr,
     async_def: bool = False,
 ) -> ast.FunctionDef | ast.AsyncFunctionDef:
@@ -229,7 +229,7 @@ def make_overload_method(
     Args:
         method_name: Name of the method (e.g., "__init__")
         params: List of (param_name, type_annotation) tuples for positional params
-        kwonly_params: List of (param_name, type_annotation) tuples for keyword-only params
+        kwonly_params: List of (param_name, type_annotation, has_default) tuples for keyword-only params
         return_type: Return type annotation
         async_def: Whether to generate an async overload
 
@@ -245,8 +245,12 @@ def make_overload_method(
 
     # Add keyword-only parameters
     kwonlyargs = []
-    for param_name, param_type in kwonly_params:
+    kw_defaults: list[ast.expr | None] = []
+    for param_name, param_type, has_default in kwonly_params:
         kwonlyargs.append(ast.arg(arg=param_name, annotation=param_type))
+        # If has_default is True, use Ellipsis (...) as the default
+        # If has_default is False, use None (meaning required)
+        kw_defaults.append(ast.Constant(value=...) if has_default else None)
 
     func_cls = ast.AsyncFunctionDef if async_def else ast.FunctionDef
 
@@ -257,8 +261,7 @@ def make_overload_method(
             posonlyargs=[],
             args=args,
             kwonlyargs=kwonlyargs,
-            kw_defaults=[None]
-            * len(kwonlyargs),  # All keyword-only args are required (no default values)
+            kw_defaults=kw_defaults,
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)

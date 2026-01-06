@@ -41,7 +41,7 @@ class DeleteuserPathParams(TypedDict):
 class BaseClient:
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams) -> list[User]:
+    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams=...) -> list[User]:
         ...
 
     @overload
@@ -69,7 +69,7 @@ class BaseClient:
 class AsyncBaseClient:
 
     @overload
-    async def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams) -> list[User]:
+    async def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams=...) -> list[User]:
         ...
 
     @overload
