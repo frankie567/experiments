@@ -18,6 +18,7 @@ from .ast_utils import (
     make_overload_method,
     make_typed_dict,
     not_required_type,
+    union_type,
 )
 from .context import GeneratorContext, TransformOptions
 from .transform_schema import transform_schema_object
@@ -339,25 +340,20 @@ def _create_overload_for_operation(
     positional_params.append(("path", path_literal))
 
     # Build keyword-only parameters (path_params, query_params, body)
+    # Only include parameters that are actually needed (not None)
     kwonly_params: list[tuple[str, ast.expr]] = []
 
-    # Path params - either the TypedDict type or None
+    # Path params - only add if there are path parameters
     if path_params_type:
         kwonly_params.append(("path_params", path_params_type))
-    else:
-        kwonly_params.append(("path_params", make_constant(None)))
 
-    # Query params - either the TypedDict type or None
+    # Query params - only add if there are query parameters
     if query_params_type:
         kwonly_params.append(("query_params", query_params_type))
-    else:
-        kwonly_params.append(("query_params", make_constant(None)))
 
-    # Body - either the body type or None
+    # Body - only add if there's a request body
     if body_type:
         kwonly_params.append(("body", body_type))
-    else:
-        kwonly_params.append(("body", make_constant(None)))
 
     # Return the response type
     sync_method = make_overload_method(
@@ -391,11 +387,11 @@ def create_request_classes(
                 ast.arg(arg="path", annotation=make_name("str")),
             ],
             kwonlyargs=[
-                ast.arg(arg="path_params", annotation=any_type()),
-                ast.arg(arg="query_params", annotation=any_type()),
-                ast.arg(arg="body", annotation=any_type()),
+                ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
             ],
-            kw_defaults=[None] * 3,
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -419,11 +415,11 @@ def create_request_classes(
                 ast.arg(arg="path", annotation=make_name("str")),
             ],
             kwonlyargs=[
-                ast.arg(arg="path_params", annotation=any_type()),
-                ast.arg(arg="query_params", annotation=any_type()),
-                ast.arg(arg="body", annotation=any_type()),
+                ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
             ],
-            kw_defaults=[None] * 3,
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -468,11 +464,11 @@ def create_request_classes(
                 ast.arg(arg="path", annotation=make_name("str")),
             ],
             kwonlyargs=[
-                ast.arg(arg="path_params", annotation=any_type()),
-                ast.arg(arg="query_params", annotation=any_type()),
-                ast.arg(arg="body", annotation=any_type()),
+                ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
             ],
-            kw_defaults=[None] * 3,
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -513,11 +509,11 @@ def create_request_classes(
                 ast.arg(arg="path", annotation=make_name("str")),
             ],
             kwonlyargs=[
-                ast.arg(arg="path_params", annotation=any_type()),
-                ast.arg(arg="query_params", annotation=any_type()),
-                ast.arg(arg="body", annotation=any_type()),
+                ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
+                ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
             ],
-            kw_defaults=[None] * 3,
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[

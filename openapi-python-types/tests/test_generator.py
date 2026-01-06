@@ -128,6 +128,15 @@ paths:
     assert (
         "-> dict[str, Any]:" in result
     )  # Response type for object schema (modern syntax)
+    
+    # Verify that query_params and body are NOT in the overload (since GET with path params doesn't have them)
+    # The overload should end with just path_params
+    assert "*, path_params: GetitemPathParams) -> dict[str, Any]:" in result
+    
+    # Verify that the implementation method has optional parameters
+    assert "path_params: Any | None=None" in result
+    assert "query_params: Any | None=None" in result
+    assert "body: Any | None=None" in result
 
 
 def test_json_format():
