@@ -77,7 +77,7 @@ def union_type(types: list[ast.expr]) -> ast.BinOp | ast.expr:
         return any_type()
     if len(types) == 1:
         return types[0]
-    
+
     # Build union using BinOp with BitOr
     result = types[0]
     for t in types[1:]:
@@ -107,7 +107,7 @@ def make_typed_dict(
     total: bool = True,
 ) -> ast.ClassDef:
     """Create a TypedDict class definition.
-    
+
     Args:
         name: Name of the TypedDict class
         fields: List of (field_name, type_annotation) tuples
@@ -115,11 +115,11 @@ def make_typed_dict(
         total: Whether all fields are required by default
     """
     body: list[ast.stmt] = []
-    
+
     # Add docstring if provided
     if docstring:
         body.append(ast.Expr(value=make_constant(docstring)))
-    
+
     # Add fields as AnnAssign statements
     for field_name, field_type in fields:
         ann_assign = ast.AnnAssign(
@@ -128,11 +128,11 @@ def make_typed_dict(
             simple=1,
         )
         body.append(ann_assign)
-    
+
     # If no fields and no docstring, add pass
     if not body:
         body.append(ast.Pass())
-    
+
     # Create the class - use simple Name instead of Attribute to avoid "typing." prefix
     bases = [make_name("TypedDict")]
     return ast.ClassDef(
@@ -152,7 +152,7 @@ def make_protocol(
     docstring: str | None = None,
 ) -> ast.ClassDef:
     """Create a Protocol class definition.
-    
+
     Args:
         name: Name of the Protocol class
         method_name: Name of the method (e.g., "__call__")
@@ -161,25 +161,25 @@ def make_protocol(
         docstring: Optional docstring
     """
     body: list[ast.stmt] = []
-    
+
     # Add docstring if provided
     if docstring:
         body.append(ast.Expr(value=make_constant(docstring)))
-    
+
     # Create function arguments
     args = []
     defaults = []
-    
+
     # Add 'self' parameter for __call__
     if method_name == "__call__":
         args.append(ast.arg(arg="self", annotation=None))
-    
+
     # Add other parameters
     for param_name, param_type, default_value in params:
         args.append(ast.arg(arg=param_name, annotation=param_type))
         if default_value is not None:
             defaults.append(make_constant(default_value))
-    
+
     # Create the function definition
     func_def = ast.FunctionDef(
         name=method_name,
@@ -195,7 +195,7 @@ def make_protocol(
         returns=return_type,
     )
     body.append(func_def)
-    
+
     # Create the class - use simple Name instead of Attribute
     bases = [make_name("Protocol")]
     return ast.ClassDef(
@@ -218,47 +218,57 @@ def make_type_alias(name: str, value: ast.expr) -> ast.Assign:
 def make_overload_method(
     method_name: str,
     params: list[tuple[str, ast.expr]],  # (name, type_annotation)
-    kwonly_params: list[tuple[str, ast.expr]],  # (name, type_annotation) for keyword-only
+    kwonly_params: list[
+        tuple[str, ast.expr]
+    ],  # (name, type_annotation) for keyword-only
     return_type: ast.expr,
-) -> ast.FunctionDef:
+    async_def: bool = False,
+) -> ast.FunctionDef | ast.AsyncFunctionDef:
     """Create an @overload decorated method.
-    
+
     Args:
         method_name: Name of the method (e.g., "__init__")
         params: List of (param_name, type_annotation) tuples for positional params
         kwonly_params: List of (param_name, type_annotation) tuples for keyword-only params
         return_type: Return type annotation
-        
+        async_def: Whether to generate an async overload
+
     Returns:
-        FunctionDef with @overload decorator
+        FunctionDef or AsyncFunctionDef with @overload decorator
     """
     # Create function arguments
     args = [ast.arg(arg="self", annotation=None)]  # Always include self
-    
+
     # Add positional parameters
     for param_name, param_type in params:
         args.append(ast.arg(arg=param_name, annotation=param_type))
-    
+
     # Add keyword-only parameters
     kwonlyargs = []
     for param_name, param_type in kwonly_params:
         kwonlyargs.append(ast.arg(arg=param_name, annotation=param_type))
-    
+
+    func_cls = ast.AsyncFunctionDef if async_def else ast.FunctionDef
+
     # Create the function definition
-    func_def = ast.FunctionDef(
+    func_def = func_cls(
         name=method_name,
         args=ast.arguments(
             posonlyargs=[],
             args=args,
             kwonlyargs=kwonlyargs,
-            kw_defaults=[None] * len(kwonlyargs),  # All keyword-only args are required (no default values)
+            kw_defaults=[None]
+            * len(kwonlyargs),  # All keyword-only args are required (no default values)
             defaults=[],
         ),
         body=[ast.Expr(value=ast.Constant(value=...))],  # ... (Ellipsis)
-        decorator_list=[make_name("overload")],  # Use simple name since 'overload' is imported directly
+        decorator_list=[
+            make_name("overload")
+        ],  # Use simple name since 'overload' is imported directly
         returns=return_type,
+        type_comment=None,
     )
-    
+
     return func_def
 
 
@@ -276,6 +286,6 @@ def unparse_module(nodes: list[ast.stmt]) -> str:
     # Fix missing location information
     for node in nodes:
         ast.fix_missing_locations(node)
-    
+
     module = ast.Module(body=nodes, type_ignores=[])
     return ast.unparse(module)

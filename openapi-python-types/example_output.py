@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, Protocol, TypedDict, overload
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 class User(TypedDict):
     """A user in the system"""
@@ -38,7 +38,7 @@ class UpdateuserPathParams(TypedDict):
 class DeleteuserPathParams(TypedDict):
     userId: int
 
-class Client(Protocol):
+class BaseClient:
 
     @overload
     def __call__(self, method: Literal['GET'], path: Literal['/users'], *, path_params: None, query_params: ListusersQueryParams, body: None) -> list[User]:
@@ -61,4 +61,35 @@ class Client(Protocol):
         ...
 
     def __call__(self, method: str, path: str, *, path_params: Any, query_params: Any, body: Any) -> Any:
+        return self.make_request(method, path, path_params=path_params, query_params=query_params, body=body)
+
+    def make_request(self, method: str, path: str, *, path_params: Any, query_params: Any, body: Any) -> Any:
+        raise NotImplementedError()
+
+class AsyncBaseClient:
+
+    @overload
+    async def __call__(self, method: Literal['GET'], path: Literal['/users'], *, path_params: None, query_params: ListusersQueryParams, body: None) -> list[User]:
         ...
+
+    @overload
+    async def __call__(self, method: Literal['POST'], path: Literal['/users'], *, path_params: None, query_params: None, body: UserCreate) -> User:
+        ...
+
+    @overload
+    async def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParams, query_params: None, body: None) -> User:
+        ...
+
+    @overload
+    async def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParams, query_params: None, body: UserUpdate) -> User:
+        ...
+
+    @overload
+    async def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParams, query_params: None, body: None) -> None:
+        ...
+
+    async def __call__(self, method: str, path: str, *, path_params: Any, query_params: Any, body: Any) -> Any:
+        return await self.make_request(method, path, path_params=path_params, query_params=query_params, body=body)
+
+    async def make_request(self, method: str, path: str, *, path_params: Any, query_params: Any, body: Any) -> Any:
+        raise NotImplementedError()

@@ -24,9 +24,9 @@ components:
         age:
           type: integer
 """
-    
+
     result = generate_types(spec)
-    
+
     assert "class Person(TypedDict):" in result
     assert "name: str" in result
     assert "age: NotRequired[int]" in result
@@ -48,9 +48,9 @@ components:
         - inactive
         - pending
 """
-    
+
     result = generate_types(spec)
-    
+
     assert "Status = Literal['active', 'inactive', 'pending']" in result
 
 
@@ -71,9 +71,9 @@ components:
           items:
             type: string
 """
-    
+
     result = generate_types(spec)
-    
+
     assert "list[str]" in result
 
 
@@ -102,32 +102,40 @@ paths:
               schema:
                 type: object
 """
-    
+
     result = generate_types(spec)
-    
-    # Check for Client Protocol with @overload
-    assert "class Client(Protocol):" in result
+
+    # Check for BaseClient and AsyncBaseClient with @overload and delegation
+    assert "class BaseClient:" in result
+    assert "class AsyncBaseClient:" in result
+    assert "def make_request" in result
+    assert "async def make_request" in result
     assert "@overload" in result
     assert "def __call__" in result
-    
+    assert "async def __call__" in result
+    assert "self.make_request(" in result
+    assert "await self.make_request(" in result
+
     # Check for path params TypedDict
     assert "class GetitemPathParams(TypedDict):" in result
     assert "id: int" in result
-    
+
     # Check for the overload with correct parameters and response type
     assert "method: Literal['GET']" in result
     assert "path: Literal['/items/{id}']" in result
     # Check for keyword-only marker
     assert "*, path_params: GetitemPathParams" in result
-    assert "-> dict[str, Any]:" in result  # Response type for object schema (modern syntax)
+    assert (
+        "-> dict[str, Any]:" in result
+    )  # Response type for object schema (modern syntax)
 
 
 def test_json_format():
     """Test parsing JSON format specs."""
     spec = '{"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0.0"}, "components": {"schemas": {}}}'
-    
+
     result = generate_types(spec, format="json")
-    
+
     # Should not raise an error
     assert isinstance(result, str)
 
@@ -152,8 +160,8 @@ components:
         - admin
         - user
 """
-    
+
     result = generate_types(spec)
-    
+
     assert "role: NotRequired[Role]" in result
     assert "Role = Literal['admin', 'user']" in result
