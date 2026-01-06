@@ -77,8 +77,12 @@ def transform_paths_object(
 
             nodes.extend(operation_nodes)
             if sync_overload:
+                # sync_overload is FunctionDef when async_def=False
+                assert isinstance(sync_overload, ast.FunctionDef)
                 sync_overload_methods.append(sync_overload)
             if async_overload:
+                # async_overload is AsyncFunctionDef when async_def=True
+                assert isinstance(async_overload, ast.AsyncFunctionDef)
                 async_overload_methods.append(async_overload)
 
     # Create the Request classes with all overload methods
@@ -97,7 +101,7 @@ def transform_operation_to_overload(
     method: str,
     operation: dict[str, Any],
     options: TransformOptions,
-) -> tuple[list[ast.stmt], ast.FunctionDef | None, ast.AsyncFunctionDef | None]:
+) -> tuple[list[ast.stmt], ast.FunctionDef | ast.AsyncFunctionDef, ast.FunctionDef | ast.AsyncFunctionDef]:
     """Transform an operation to TypedDicts and an @overload method.
 
     Args:
@@ -319,7 +323,7 @@ def _create_overload_for_operation(
     body_type: ast.expr | None,
     response_type: ast.expr,
     options: TransformOptions,
-) -> tuple[ast.FunctionDef, ast.AsyncFunctionDef]:
+) -> tuple[ast.FunctionDef | ast.AsyncFunctionDef, ast.FunctionDef | ast.AsyncFunctionDef]:
     """Create @overload methods (sync and async) for an operation."""
     options.ctx.add_import("Literal")
 
@@ -443,11 +447,12 @@ def create_request_classes(
         returns=any_type(),
     )
 
+    body_list: list[ast.stmt] = [*sync_overloads, impl_method, make_request_method]
     base_client = ast.ClassDef(
         name="BaseClient",
         bases=[],
         keywords=[],
-        body=sync_overloads + [impl_method, make_request_method],
+        body=body_list,
         decorator_list=[],
     )
 
@@ -527,11 +532,12 @@ def create_request_classes(
         type_comment=None,
     )
 
+    async_body_list: list[ast.stmt] = [*async_overloads, async_impl_method, async_make_request_method]
     async_client = ast.ClassDef(
         name="AsyncBaseClient",
         bases=[],
         keywords=[],
-        body=async_overloads + [async_impl_method, async_make_request_method],
+        body=async_body_list,
         decorator_list=[],
     )
 

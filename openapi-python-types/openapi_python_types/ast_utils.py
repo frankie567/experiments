@@ -50,7 +50,7 @@ def bool_type() -> ast.Name:
     return make_name("bool")
 
 
-def any_type() -> ast.Name:
+def any_type() -> ast.expr:
     """Create Any type."""
     return make_name("Any")
 
@@ -134,7 +134,7 @@ def make_typed_dict(
         body.append(ast.Pass())
 
     # Create the class - use simple Name instead of Attribute to avoid "typing." prefix
-    bases = [make_name("TypedDict")]
+    bases: list[ast.expr] = [make_name("TypedDict")]
     return ast.ClassDef(
         name=name,
         bases=bases,
@@ -168,7 +168,7 @@ def make_protocol(
 
     # Create function arguments
     args = []
-    defaults = []
+    defaults: list[ast.expr] = []
 
     # Add 'self' parameter for __call__
     if method_name == "__call__":
@@ -197,7 +197,7 @@ def make_protocol(
     body.append(func_def)
 
     # Create the class - use simple Name instead of Attribute
-    bases = [make_name("Protocol")]
+    bases: list[ast.expr] = [make_name("Protocol")]
     return ast.ClassDef(
         name=name,
         bases=bases,

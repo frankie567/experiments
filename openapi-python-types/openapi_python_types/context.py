@@ -55,11 +55,14 @@ class GeneratorContext:
             raise ValueError(f"Only internal references are supported: {ref}")
         
         parts = ref[2:].split("/")
-        current = self.spec
+        current: Any = self.spec
         
         for part in parts:
             if isinstance(current, dict):
-                current = current.get(part)
+                value = current.get(part)
+                if value is None:
+                    raise ValueError(f"Cannot resolve reference: {ref}")
+                current = value
             else:
                 raise ValueError(f"Cannot resolve reference: {ref}")
         

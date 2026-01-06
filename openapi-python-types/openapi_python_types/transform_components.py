@@ -83,7 +83,7 @@ def transform_schema_to_definition(
         
         if not is_object_enum:
             options.ctx.add_import("Literal")
-            enum_values = [make_constant(v) for v in schema["enum"]]
+            enum_values: list[ast.expr] = [make_constant(v) for v in schema["enum"]]
             enum_type = literal_type(enum_values)
             return make_type_alias(name, enum_type)
     

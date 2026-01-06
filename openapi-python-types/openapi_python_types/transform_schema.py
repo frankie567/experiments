@@ -68,7 +68,7 @@ def transform_schema_object(schema: Any, options: TransformOptions) -> ast.expr:
         
         if not is_object_enum:
             options.ctx.add_import("Literal")
-            enum_values = [make_constant(v) for v in schema["enum"]]
+            enum_values: list[ast.expr] = [make_constant(v) for v in schema["enum"]]
             base_type = literal_type(enum_values)
             return _handle_nullable(schema, base_type, options)
     
