@@ -7,6 +7,7 @@ Reference: https://spec.openapis.org/oas/v3.1.0#components-object
 """
 
 import ast
+import re
 from typing import Any
 
 from .ast_utils import (
@@ -18,6 +19,31 @@ from .ast_utils import (
 )
 from .context import TransformOptions, GeneratorContext
 from .transform_schema import transform_schema_object
+
+
+def _sanitize_schema_name(name: str) -> str:
+    """Sanitize schema name to create a valid Python identifier.
+    
+    Replaces hyphens and other invalid characters with underscores.
+    
+    Examples:
+        CostMetadata-Input -> CostMetadataInput
+        ProductPriceSeatTiers-Output -> ProductPriceSeatTiersOutput
+        some-kebab-case -> SomeKebabCase
+    
+    Args:
+        name: The schema name from OpenAPI spec
+        
+    Returns:
+        Sanitized name suitable for a Python class/type
+    """
+    # Replace hyphens with underscores, then remove them for PascalCase
+    # This handles: - and converts to PascalCase
+    if '-' in name:
+        parts = name.split('-')
+        return ''.join(parts)
+    
+    return name
 
 
 def transform_components_object(components: dict[str, Any], ctx: GeneratorContext) -> list[ast.stmt]:
@@ -68,10 +94,13 @@ def transform_schema_to_definition(
     Returns:
         AST node for the type definition (TypedDict, type alias, etc.)
     """
+    # Sanitize schema name to ensure valid Python identifier
+    sanitized_name = _sanitize_schema_name(name)
+    
     # Handle $ref (shouldn't happen at top level, but just in case)
     if "$ref" in schema:
         ref_type = transform_schema_object(schema, options)
-        return make_type_alias(name, ref_type)
+        return make_type_alias(sanitized_name, ref_type)
     
     # Handle enum types (non-object)
     if "enum" in schema and isinstance(schema["enum"], list):
@@ -85,20 +114,20 @@ def transform_schema_to_definition(
             options.ctx.add_import("Literal")
             enum_values: list[ast.expr] = [make_constant(v) for v in schema["enum"]]
             enum_type = literal_type(enum_values)
-            return make_type_alias(name, enum_type)
+            return make_type_alias(sanitized_name, enum_type)
     
     # Handle object types with properties
     if schema.get("type") == "object" or "properties" in schema:
-        return _transform_object_schema_to_typed_dict(name, schema, options)
+        return _transform_object_schema_to_typed_dict(sanitized_name, schema, options)
     
     # Handle anyOf, oneOf, allOf
     if "anyOf" in schema or "oneOf" in schema or "allOf" in schema:
         union_type = transform_schema_object(schema, options)
-        return make_type_alias(name, union_type)
+        return make_type_alias(sanitized_name, union_type)
     
     # For other schemas, create a type alias
     schema_type = transform_schema_object(schema, options)
-    return make_type_alias(name, schema_type)
+    return make_type_alias(sanitized_name, schema_type)
 
 
 def _transform_object_schema_to_typed_dict(

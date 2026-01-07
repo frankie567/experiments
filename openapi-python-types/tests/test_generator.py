@@ -283,3 +283,52 @@ paths:
     assert "api.v1.items" not in result  # Dots should not appear in identifiers (except in dict keys)
     assert "products/search" not in result  # Slashes should not appear except in path Literals
     assert "orders-list-all" not in result  # Hyphens should not appear in identifiers
+
+
+def test_schema_name_sanitization():
+    """Test that schema names with hyphens are properly sanitized."""
+    spec = """
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+components:
+  schemas:
+    CostMetadata-Input:
+      type: object
+      properties:
+        amount:
+          type: integer
+        currency:
+          type: string
+    CostMetadata-Output:
+      type: object
+      properties:
+        amount:
+          type: integer
+        currency:
+          type: string
+        computed_tax:
+          type: integer
+    ProductData:
+      type: object
+      properties:
+        name:
+          type: string
+        cost:
+          $ref: '#/components/schemas/CostMetadata-Input'
+"""
+
+    result = generate_types(spec)
+
+    # Check that hyphens in schema names are removed
+    assert "class CostMetadataInput(TypedDict):" in result
+    assert "class CostMetadataOutput(TypedDict):" in result
+    
+    # Check that references are also sanitized
+    assert "cost: NotRequired[CostMetadataInput]" in result
+    
+    # Check that invalid Python identifiers (with hyphens) don't appear
+    assert "CostMetadata-Input" not in result
+    assert "CostMetadata-Output" not in result
+

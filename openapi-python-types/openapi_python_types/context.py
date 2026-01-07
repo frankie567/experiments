@@ -69,15 +69,18 @@ class GeneratorContext:
         return current
     
     def get_ref_name(self, ref: str) -> str:
-        """Extract the name from a reference.
+        """Extract the name from a reference and sanitize it.
         
         Args:
             ref: Reference string like "#/components/schemas/User"
             
         Returns:
-            The name part (e.g., "User")
+            The sanitized name part (e.g., "User", "CostMetadataInput" from "CostMetadata-Input")
         """
-        return ref.split("/")[-1]
+        from .transform_components import _sanitize_schema_name
+        
+        name = ref.split("/")[-1]
+        return _sanitize_schema_name(name)
 
 
 @dataclass
