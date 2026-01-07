@@ -24,6 +24,35 @@ from .context import GeneratorContext, TransformOptions
 from .transform_schema import transform_schema_object
 
 
+def _sanitize_operation_name(operation_id: str) -> str:
+    """Sanitize operation ID to create a valid Python class name.
+    
+    Converts special characters to underscores, splits on word boundaries,
+    and capitalizes each word to create a PascalCase name.
+    
+    Examples:
+        users:list -> UsersList
+        api.v1.items -> ApiV1Items
+        users/list -> UsersList
+        users-list -> UsersList
+        users_list -> UsersList
+    
+    Args:
+        operation_id: The operationId from OpenAPI spec
+        
+    Returns:
+        PascalCase name suitable for a Python class
+    """
+    # Replace special characters with word boundaries
+    # This handles: : . / - _ and spaces
+    sanitized = re.sub(r'[:\./\-_\s]+', '_', operation_id)
+    
+    # Split on underscores and capitalize each word
+    words = [word.capitalize() for word in sanitized.split('_') if word]
+    
+    return ''.join(words)
+
+
 def transform_paths_object(
     paths: dict[str, Any], ctx: GeneratorContext
 ) -> list[ast.stmt]:
@@ -119,9 +148,7 @@ def transform_operation_to_overload(
     # Generate a base name for this operation
     operation_id = operation.get("operationId")
     if operation_id:
-        base_name = "".join(
-            word.capitalize() for word in re.split(r"[_\-]", operation_id)
-        )
+        base_name = _sanitize_operation_name(operation_id)
     else:
         # Generate from path and method
         path_parts = [p for p in path.split("/") if p and not p.startswith("{")]
