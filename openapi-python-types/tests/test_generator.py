@@ -6,7 +6,7 @@ from openapi_python_types import generate_types
 
 
 def test_simple_schema():
-    """Test generating TypedDict for a simple schema."""
+    """Test generating TypedDict and dataclass for a simple schema."""
     spec = """
 openapi: 3.0.0
 info:
@@ -27,9 +27,15 @@ components:
 
     result = generate_types(spec)
 
-    assert "class Person(TypedDict):" in result
+    # Check TypedDict version (with Dict suffix)
+    assert "class PersonDict(TypedDict):" in result
     assert "name: str" in result
     assert "age: NotRequired[int]" in result
+    
+    # Check dataclass version (original name)
+    assert "@dataclass" in result
+    assert "class Person:" in result
+    assert "age: int | None = field(default=None)" in result
 
 
 def test_enum_schema():
@@ -321,12 +327,16 @@ components:
 
     result = generate_types(spec)
 
-    # Check that hyphens in schema names are removed
-    assert "class CostMetadataInput(TypedDict):" in result
-    assert "class CostMetadataOutput(TypedDict):" in result
+    # Check that hyphens in schema names are removed (TypedDict versions)
+    assert "class CostMetadataInputDict(TypedDict):" in result
+    assert "class CostMetadataOutputDict(TypedDict):" in result
     
-    # Check that references are also sanitized
-    assert "cost: NotRequired[CostMetadataInput]" in result
+    # Check dataclass versions
+    assert "class CostMetadataInput:" in result
+    assert "class CostMetadataOutput:" in result
+    
+    # Check that references are also sanitized (uses dataclass type, not Dict)
+    assert "cost: CostMetadataInput | None" in result
     
     # Check that invalid Python identifiers (with hyphens) don't appear
     assert "CostMetadata-Input" not in result
