@@ -1,6 +1,7 @@
 from typing import Any, Literal, NotRequired, TypedDict, overload
+from dataclasses import dataclass, field
 
-class User(TypedDict):
+class UserDict(TypedDict):
     """A user in the system"""
     id: int
     username: str
@@ -9,87 +10,131 @@ class User(TypedDict):
     is_active: NotRequired[bool]
     role: NotRequired[UserRole]
 
-class UserCreate(TypedDict):
+@dataclass
+class User:
+    """A user in the system"""
+    id: int
+    username: str
+    email: str
+    full_name: str | None = field(default=None)
+    is_active: bool | None = field(default=None)
+    role: UserRole | None = field(default=None)
+
+class UserCreateDict(TypedDict):
     """Schema for creating a new user"""
     username: str
     email: str
     full_name: NotRequired[str]
     role: NotRequired[UserRole]
 
-class UserUpdate(TypedDict):
+@dataclass
+class UserCreate:
+    """Schema for creating a new user"""
+    username: str
+    email: str
+    full_name: str | None = field(default=None)
+    role: UserRole | None = field(default=None)
+
+class UserUpdateDict(TypedDict):
     """Schema for updating a user"""
     username: NotRequired[str]
     email: NotRequired[str]
     full_name: NotRequired[str]
     is_active: NotRequired[bool]
     role: NotRequired[UserRole]
+
+@dataclass
+class UserUpdate:
+    """Schema for updating a user"""
+    username: str | None = field(default=None)
+    email: str | None = field(default=None)
+    full_name: str | None = field(default=None)
+    is_active: bool | None = field(default=None)
+    role: UserRole | None = field(default=None)
 UserRole = Literal['admin', 'user', 'guest']
 
-class ListusersQueryParams(TypedDict):
+class ListusersQueryParamsDict(TypedDict):
     limit: NotRequired[int]
     offset: NotRequired[int]
 
-class GetuserPathParams(TypedDict):
+@dataclass
+class ListusersQueryParams:
+    limit: int | None = field(default=None)
+    offset: int | None = field(default=None)
+
+class GetuserPathParamsDict(TypedDict):
     userId: int
 
-class UpdateuserPathParams(TypedDict):
+@dataclass
+class GetuserPathParams:
     userId: int
 
-class DeleteuserPathParams(TypedDict):
+class UpdateuserPathParamsDict(TypedDict):
+    userId: int
+
+@dataclass
+class UpdateuserPathParams:
+    userId: int
+
+class DeleteuserPathParamsDict(TypedDict):
+    userId: int
+
+@dataclass
+class DeleteuserPathParams:
     userId: int
 
 class BaseClient:
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams=...) -> list[User]:
+    def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParamsDict | ListusersQueryParams=..., response_model: type[list[User]]) -> list[User]:
         ...
 
     @overload
-    def __call__(self, method: Literal['POST'], path: Literal['/users'], *, body: UserCreate) -> User:
+    def __call__(self, method: Literal['POST'], path: Literal['/users'], *, body: UserCreateDict | UserCreate, response_model: type[User]) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParams) -> User:
+    def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParamsDict | GetuserPathParams, response_model: type[User]) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParams, body: UserUpdate) -> User:
+    def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParamsDict | UpdateuserPathParams, body: UserUpdateDict | UserUpdate, response_model: type[User]) -> User:
         ...
 
     @overload
-    def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParams) -> None:
+    def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParamsDict | DeleteuserPathParams) -> None:
         ...
 
-    def __call__(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None) -> Any:
-        return self.make_request(method, path, path_params=path_params, query_params=query_params, body=body)
+    def __call__(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None, response_model: type[Any] | None=None) -> Any:
+        return self.make_request(method, path, path_params=path_params, query_params=query_params, body=body, response_model=response_model)
 
-    def make_request(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None) -> Any:
+    def make_request(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None, response_model: type[Any] | None=None) -> Any:
         raise NotImplementedError()
 
 class AsyncBaseClient:
 
     @overload
-    async def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParams=...) -> list[User]:
+    async def __call__(self, method: Literal['GET'], path: Literal['/users'], *, query_params: ListusersQueryParamsDict | ListusersQueryParams=..., response_model: type[list[User]]) -> list[User]:
         ...
 
     @overload
-    async def __call__(self, method: Literal['POST'], path: Literal['/users'], *, body: UserCreate) -> User:
+    async def __call__(self, method: Literal['POST'], path: Literal['/users'], *, body: UserCreateDict | UserCreate, response_model: type[User]) -> User:
         ...
 
     @overload
-    async def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParams) -> User:
+    async def __call__(self, method: Literal['GET'], path: Literal['/users/{userId}'], *, path_params: GetuserPathParamsDict | GetuserPathParams, response_model: type[User]) -> User:
         ...
 
     @overload
-    async def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParams, body: UserUpdate) -> User:
+    async def __call__(self, method: Literal['PUT'], path: Literal['/users/{userId}'], *, path_params: UpdateuserPathParamsDict | UpdateuserPathParams, body: UserUpdateDict | UserUpdate, response_model: type[User]) -> User:
         ...
 
     @overload
-    async def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParams) -> None:
+    async def __call__(self, method: Literal['DELETE'], path: Literal['/users/{userId}'], *, path_params: DeleteuserPathParamsDict | DeleteuserPathParams) -> None:
         ...
 
-    async def __call__(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None) -> Any:
-        return await self.make_request(method, path, path_params=path_params, query_params=query_params, body=body)
+    async def __call__(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None, response_model: type[Any] | None=None) -> Any:
+        return await self.make_request(method, path, path_params=path_params, query_params=query_params, body=body, response_model=response_model)
 
-    async def make_request(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None) -> Any:
+    async def make_request(self, method: str, path: str, *, path_params: Any | None=None, query_params: Any | None=None, body: Any | None=None, response_model: type[Any] | None=None) -> Any:
         raise NotImplementedError()
