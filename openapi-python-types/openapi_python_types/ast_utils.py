@@ -144,6 +144,65 @@ def make_typed_dict(
     )
 
 
+def make_dataclass(
+    name: str,
+    fields: list[tuple[str, ast.expr, bool]],  # (name, type, has_default)
+    docstring: str | None = None,
+) -> ast.ClassDef:
+    """Create a dataclass definition.
+
+    Args:
+        name: Name of the dataclass
+        fields: List of (field_name, type_annotation, has_default) tuples
+        docstring: Optional docstring
+        
+    Returns:
+        ClassDef with @dataclass decorator
+    """
+    body: list[ast.stmt] = []
+
+    # Add docstring if provided
+    if docstring:
+        body.append(ast.Expr(value=make_constant(docstring)))
+
+    # Add fields as AnnAssign statements
+    for field_name, field_type, has_default in fields:
+        # Create field with default if needed
+        if has_default:
+            # Use field(default=None) for optional fields
+            ann_assign = ast.AnnAssign(
+                target=make_name(field_name),
+                annotation=field_type,
+                value=ast.Call(
+                    func=make_name("field"),
+                    args=[],
+                    keywords=[ast.keyword(arg="default", value=make_name("None"))],
+                ),
+                simple=1,
+            )
+        else:
+            # Required field without default
+            ann_assign = ast.AnnAssign(
+                target=make_name(field_name),
+                annotation=field_type,
+                simple=1,
+            )
+        body.append(ann_assign)
+
+    # If no fields and no docstring, add pass
+    if not body:
+        body.append(ast.Pass())
+
+    # Create the class with @dataclass decorator
+    return ast.ClassDef(
+        name=name,
+        bases=[],
+        keywords=[],
+        body=body,
+        decorator_list=[make_name("dataclass")],
+    )
+
+
 def make_protocol(
     name: str,
     method_name: str,
