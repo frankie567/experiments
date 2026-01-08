@@ -148,8 +148,8 @@ def _transform_object_schema_to_both(
         List containing both TypedDict (with Dict suffix) and dataclass definitions
     """
     options.ctx.add_import("TypedDict")
-    options.ctx.add_import("dataclass")
-    options.ctx.add_import("field")
+    options.ctx.add_dataclass_import("dataclass")
+    options.ctx.add_dataclass_import("field")
     
     properties = schema.get("properties", {})
     required = set(schema.get("required", []))

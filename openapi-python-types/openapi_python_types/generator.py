@@ -68,8 +68,8 @@ def generate_ast(spec: dict[str, Any], ctx: GeneratorContext) -> list[ast.stmt]:
         nodes.extend(path_nodes)
     
     # Add imports at the beginning
-    typing_imports = ctx.imports - {"dataclass", "field"}
-    dataclasses_imports = ctx.imports & {"dataclass", "field"}
+    typing_imports = ctx.imports
+    dataclasses_imports = ctx.dataclass_imports
     
     import_nodes: list[ast.stmt] = []
     if typing_imports:

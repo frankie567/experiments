@@ -38,9 +38,16 @@ class GeneratorContext:
     imports: set[str] = field(default_factory=set)
     """Set of imports needed (e.g., 'List', 'Optional', 'TypedDict')."""
     
+    dataclass_imports: set[str] = field(default_factory=set)
+    """Set of dataclass module imports needed (e.g., 'dataclass', 'field')."""
+    
     def add_import(self, name: str) -> None:
         """Add an import to the context."""
         self.imports.add(name)
+    
+    def add_dataclass_import(self, name: str) -> None:
+        """Add a dataclass module import to the context."""
+        self.dataclass_imports.add(name)
     
     def resolve_ref(self, ref: str) -> Any:
         """Resolve a $ref to its value in the spec.
