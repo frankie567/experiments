@@ -16,7 +16,21 @@ try:
 except ImportError:
     # If annotated-types is not available, set flag to skip validation
     ANNOTATED_TYPES_AVAILABLE = False
-    Ge = Le = Gt = Lt = Len = MultipleOf = Predicate = None  # type: ignore
+    # Create placeholder types to avoid NameError in isinstance checks
+    class Ge:  # type: ignore
+        pass
+    class Le:  # type: ignore
+        pass
+    class Gt:  # type: ignore
+        pass
+    class Lt:  # type: ignore
+        pass
+    class Len:  # type: ignore
+        pass
+    class MultipleOf:  # type: ignore
+        pass
+    class Predicate:  # type: ignore
+        pass
 
 
 class AnyValue:
