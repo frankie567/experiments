@@ -9,6 +9,15 @@ with type checking and validation constraints using annotated-types.
 from typing import Any, get_args, get_origin
 import types
 
+# Import annotated-types validators at module level for performance
+try:
+    from annotated_types import Ge, Le, Gt, Lt, Len, MultipleOf, Predicate
+    ANNOTATED_TYPES_AVAILABLE = True
+except ImportError:
+    # If annotated-types is not available, set flag to skip validation
+    ANNOTATED_TYPES_AVAILABLE = False
+    Ge = Le = Gt = Lt = Len = MultipleOf = Predicate = None  # type: ignore
+
 
 class AnyValue:
     """
@@ -104,11 +113,8 @@ class AnyValue:
         if not self.validators:
             return True
         
-        # Import annotated-types classes for type checking
-        try:
-            from annotated_types import Ge, Le, Gt, Lt, Len, MultipleOf, Predicate
-        except ImportError:
-            # If annotated-types is not available, skip validation
+        # Skip validation if annotated-types is not available
+        if not ANNOTATED_TYPES_AVAILABLE:
             return True
         
         # Apply each validator
