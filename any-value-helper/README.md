@@ -28,7 +28,7 @@ The `AnyValue` class provides a configurable matcher that can:
 
 ```python
 from any_value import AnyValue
-from annotated_types import Ge, Le, Len, Gt
+from annotated_types import Ge, Le, Len, Gt, Predicate
 from datetime import datetime
 from unittest.mock import Mock
 
@@ -48,8 +48,18 @@ assert 42 == AnyValue(int | None)
 
 # Validation constraints
 assert 42 == AnyValue(int, Ge(0))  # Non-negative integer
-assert "hello" == AnyValue(str, Len(5))  # String of length 5
+assert "hello" == AnyValue(str, Len(5, 5))  # String of length 5
 assert 99 == AnyValue(int, Ge(0), Le(100))  # Integer between 0 and 100
+
+# Predicate validators
+is_even = Predicate(lambda x: x % 2 == 0)
+assert 42 == AnyValue(int, is_even)
+
+# Custom callable validators
+def is_palindrome(s: str) -> bool:
+    return s == s[::-1]
+
+assert "racecar" == AnyValue(str, is_palindrome)
 
 # Integration with unittest.mock
 mock_func = Mock()
@@ -58,7 +68,7 @@ mock_func(42, "test", datetime.now())
 # Verify calls with flexible matching
 mock_func.assert_called_once_with(
     AnyValue(int, Ge(0)),
-    AnyValue(str, Len(4)),
+    AnyValue(str, Len(4, 10)),
     AnyValue(datetime)
 )
 ```
@@ -73,8 +83,8 @@ mock_func.assert_called_once_with(
 ## Running the Experiment
 
 ```bash
-# Run tests
-uv run test_any_value.py
+# Run tests with pytest
+uv run pytest test_any_value.py -v
 
 # Run demo
 uv run demo.py
@@ -86,8 +96,9 @@ The `AnyValue` class implements the `__eq__` method to compare values against:
 
 1. **Type constraints**: Checks if the value matches the specified type(s)
 2. **None handling**: Special handling for None type in unions
-3. **annotated-types validation**: Applies validation predicates from annotated-types
-4. **Mock compatibility**: Works with mock's comparison mechanism
+3. **annotated-types validation**: Applies validation predicates from annotated-types (Ge, Le, Gt, Lt, Len, MultipleOf, Predicate)
+4. **Custom callable validators**: Supports any callable that takes a value and returns a boolean
+5. **Mock compatibility**: Works with mock's comparison mechanism
 
 ## Design Decisions
 
@@ -96,3 +107,5 @@ The `AnyValue` class implements the `__eq__` method to compare values against:
 - **Union support**: Use Python's `|` operator for multiple types
 - **Explicit None**: None must be explicitly included in the type union
 - **annotated-types integration**: Leverage existing validation library for constraints
+- **Hard dependency**: annotated-types is a required dependency (not optional)
+- **Pytest for testing**: Tests use pytest framework for better test discovery and reporting

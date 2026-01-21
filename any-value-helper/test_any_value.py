@@ -5,16 +5,15 @@ Tests for the AnyValue helper.
 This module contains comprehensive tests demonstrating all features of AnyValue.
 """
 
+import pytest
 from any_value import AnyValue
-from annotated_types import Ge, Le, Len, Gt, Lt
+from annotated_types import Ge, Le, Len, Gt, Lt, Predicate
 from datetime import datetime
 from unittest.mock import Mock
 
 
 def test_basic_type_matching():
     """Test basic type matching with single types."""
-    print("Testing basic type matching...")
-    
     # Integer matching
     assert 42 == AnyValue(int)
     assert -10 == AnyValue(int)
@@ -34,14 +33,10 @@ def test_basic_type_matching():
     
     # Datetime matching
     assert datetime.now() == AnyValue(datetime)
-    
-    print("✓ Basic type matching passed")
 
 
 def test_type_mismatch():
     """Test that type mismatches are correctly rejected."""
-    print("Testing type mismatches...")
-    
     # String vs int
     assert not ("hello" == AnyValue(int))
     
@@ -51,14 +46,10 @@ def test_type_mismatch():
     # Float vs int (note: isinstance(42, float) is False)
     # But isinstance(42.0, float) is True
     assert not (42 == AnyValue(float))
-    
-    print("✓ Type mismatch detection passed")
 
 
 def test_union_types():
     """Test union types using the | operator."""
-    print("Testing union types...")
-    
     # int | float
     assert 42 == AnyValue(int | float)
     assert 3.14 == AnyValue(int | float)
@@ -71,14 +62,10 @@ def test_union_types():
     assert 42 == AnyValue(int | float | str)
     assert 3.14 == AnyValue(int | float | str)
     assert "test" == AnyValue(int | float | str)
-    
-    print("✓ Union types passed")
 
 
 def test_none_support():
     """Test None type support."""
-    print("Testing None support...")
-    
     # None type explicitly
     assert None == AnyValue(None)
     
@@ -94,14 +81,10 @@ def test_none_support():
     # None should not match when not specified
     assert not (None == AnyValue(int))
     assert not (None == AnyValue(str))
-    
-    print("✓ None support passed")
 
 
 def test_annotated_types_ge():
     """Test annotated-types Ge (greater or equal) constraint."""
-    print("Testing Ge constraint...")
-    
     # Non-negative integers
     assert 0 == AnyValue(int, Ge(0))
     assert 42 == AnyValue(int, Ge(0))
@@ -115,14 +98,10 @@ def test_annotated_types_ge():
     assert 10 == AnyValue(int, Ge(10))
     assert 100 == AnyValue(int, Ge(10))
     assert not (9 == AnyValue(int, Ge(10)))
-    
-    print("✓ Ge constraint passed")
 
 
 def test_annotated_types_le():
     """Test annotated-types Le (less or equal) constraint."""
-    print("Testing Le constraint...")
-    
     # Values <= 100
     assert 100 == AnyValue(int, Le(100))
     assert 50 == AnyValue(int, Le(100))
@@ -132,14 +111,10 @@ def test_annotated_types_le():
     # Should fail for greater
     assert not (101 == AnyValue(int, Le(100)))
     assert not (200 == AnyValue(int, Le(100)))
-    
-    print("✓ Le constraint passed")
 
 
 def test_annotated_types_len():
     """Test annotated-types Len constraint."""
-    print("Testing Len constraint...")
-    
     # String length
     assert "hello" == AnyValue(str, Len(5, 5))  # Exact length 5
     assert "test" == AnyValue(str, Len(4, 4))
@@ -156,14 +131,10 @@ def test_annotated_types_len():
     # List length
     assert [1, 2, 3] == AnyValue(list, Len(3, 3))
     assert [1, 2, 3, 4, 5] == AnyValue(list, Len(1, 10))
-    
-    print("✓ Len constraint passed")
 
 
 def test_multiple_constraints():
     """Test multiple constraints together."""
-    print("Testing multiple constraints...")
-    
     # Range: 0 <= x <= 100
     assert 0 == AnyValue(int, Ge(0), Le(100))
     assert 50 == AnyValue(int, Ge(0), Le(100))
@@ -172,14 +143,65 @@ def test_multiple_constraints():
     # Out of range
     assert not (-1 == AnyValue(int, Ge(0), Le(100)))
     assert not (101 == AnyValue(int, Ge(0), Le(100)))
+
+
+def test_predicate_validator():
+    """Test annotated-types Predicate validator."""
+    # Custom predicate - even numbers
+    is_even = Predicate(lambda x: x % 2 == 0)
+    assert 42 == AnyValue(int, is_even)
+    assert 100 == AnyValue(int, is_even)
+    assert not (43 == AnyValue(int, is_even))
     
-    print("✓ Multiple constraints passed")
+    # Predicate for positive numbers
+    is_positive = Predicate(lambda x: x > 0)
+    assert 1 == AnyValue(int, is_positive)
+    assert 100 == AnyValue(int, is_positive)
+    assert not (0 == AnyValue(int, is_positive))
+    assert not (-1 == AnyValue(int, is_positive))
+    
+    # String predicate - starts with specific prefix
+    starts_with_hello = Predicate(lambda x: x.startswith("hello"))
+    assert "hello world" == AnyValue(str, starts_with_hello)
+    assert "hello there" == AnyValue(str, starts_with_hello)
+    assert not ("goodbye" == AnyValue(str, starts_with_hello))
+    
+    # Combine predicate with other constraints
+    assert 42 == AnyValue(int, Ge(0), is_even)
+    assert not (43 == AnyValue(int, Ge(0), is_even))
+
+
+def test_callable_validator():
+    """Test custom callable validators."""
+    # Simple callable validator
+    def is_palindrome(s: str) -> bool:
+        return s == s[::-1]
+    
+    assert "racecar" == AnyValue(str, is_palindrome)
+    assert "level" == AnyValue(str, is_palindrome)
+    assert not ("hello" == AnyValue(str, is_palindrome))
+    
+    # Callable for number validation
+    def is_prime(n: int) -> bool:
+        if n < 2:
+            return False
+        for i in range(2, int(n ** 0.5) + 1):
+            if n % i == 0:
+                return False
+        return True
+    
+    assert 7 == AnyValue(int, is_prime)
+    assert 13 == AnyValue(int, is_prime)
+    assert not (4 == AnyValue(int, is_prime))
+    assert not (10 == AnyValue(int, is_prime))
+    
+    # Combine callable with annotated-types constraints
+    assert 7 == AnyValue(int, Ge(0), is_prime)
+    assert not (-7 == AnyValue(int, Ge(0), is_prime))
 
 
 def test_mock_integration():
     """Test integration with unittest.mock."""
-    print("Testing unittest.mock integration...")
-    
     # Create a mock function
     mock_func = Mock()
     
@@ -221,13 +243,28 @@ def test_mock_integration():
         AnyValue(str)
     )
     
-    print("✓ Mock integration passed")
+    # Test with Predicate
+    mock_func.reset_mock()
+    is_even = Predicate(lambda x: x % 2 == 0)
+    mock_func(42)
+    
+    mock_func.assert_called_once_with(
+        AnyValue(int, is_even)
+    )
+    
+    # Test with callable
+    mock_func.reset_mock()
+    def is_positive(x: int) -> bool:
+        return x > 0
+    mock_func(100)
+    
+    mock_func.assert_called_once_with(
+        AnyValue(int, is_positive)
+    )
 
 
 def test_complex_scenarios():
     """Test complex real-world scenarios."""
-    print("Testing complex scenarios...")
-    
     # Scenario 1: API response validation
     mock_api = Mock()
     mock_api.create_user(
@@ -254,32 +291,11 @@ def test_complex_scenarios():
         metadata=AnyValue(dict | None)  # Optional metadata
     )
     
-    print("✓ Complex scenarios passed")
-
-
-def run_all_tests():
-    """Run all tests."""
-    print("=" * 60)
-    print("Running AnyValue Tests")
-    print("=" * 60)
-    print()
+    # Scenario 3: With custom validators
+    mock_validator = Mock()
+    is_valid_email = Predicate(lambda x: "@" in x and "." in x)
+    mock_validator.send_email("user@example.com")
     
-    test_basic_type_matching()
-    test_type_mismatch()
-    test_union_types()
-    test_none_support()
-    test_annotated_types_ge()
-    test_annotated_types_le()
-    test_annotated_types_len()
-    test_multiple_constraints()
-    test_mock_integration()
-    test_complex_scenarios()
-    
-    print()
-    print("=" * 60)
-    print("All tests passed! ✓")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    run_all_tests()
+    mock_validator.send_email.assert_called_once_with(
+        AnyValue(str, is_valid_email)
+    )

@@ -7,7 +7,7 @@ in testing scenarios.
 """
 
 from any_value import AnyValue
-from annotated_types import Ge, Le, Len, Gt, Lt
+from annotated_types import Ge, Le, Len, Gt, Lt, Predicate
 from datetime import datetime
 from unittest.mock import Mock
 
@@ -91,6 +91,65 @@ def demo_validation_constraints():
     print(f"   50 == AnyValue(int, Ge(0), Le(100)) → {50 == AnyValue(int, Ge(0), Le(100))}")
     print(f"   -1 == AnyValue(int, Ge(0), Le(100)) → {-1 == AnyValue(int, Ge(0), Le(100))}")
     print(f"   101 == AnyValue(int, Ge(0), Le(100)) → {101 == AnyValue(int, Ge(0), Le(100))}")
+
+
+def demo_predicate_validator():
+    """Demonstrate Predicate validator usage."""
+    print("\n" + "=" * 60)
+    print("Predicate Validators")
+    print("=" * 60)
+    
+    print("\n1. Custom predicate - even numbers:")
+    is_even = Predicate(lambda x: x % 2 == 0)
+    print(f"   42 == AnyValue(int, is_even) → {42 == AnyValue(int, is_even)}")
+    print(f"   43 == AnyValue(int, is_even) → {43 == AnyValue(int, is_even)}")
+    
+    print("\n2. Predicate for positive numbers:")
+    is_positive = Predicate(lambda x: x > 0)
+    print(f"   1 == AnyValue(int, is_positive) → {1 == AnyValue(int, is_positive)}")
+    print(f"   -1 == AnyValue(int, is_positive) → {-1 == AnyValue(int, is_positive)}")
+    
+    print("\n3. String predicate - starts with 'hello':")
+    starts_with_hello = Predicate(lambda x: x.startswith("hello"))
+    print(f"   'hello world' == AnyValue(str, starts_with_hello) → {'hello world' == AnyValue(str, starts_with_hello)}")
+    print(f"   'goodbye' == AnyValue(str, starts_with_hello) → {'goodbye' == AnyValue(str, starts_with_hello)}")
+    
+    print("\n4. Combining Predicate with other constraints:")
+    print(f"   42 == AnyValue(int, Ge(0), is_even) → {42 == AnyValue(int, Ge(0), is_even)}")
+    print(f"   -2 == AnyValue(int, Ge(0), is_even) → {-2 == AnyValue(int, Ge(0), is_even)}")
+
+
+def demo_callable_validator():
+    """Demonstrate custom callable validator usage."""
+    print("\n" + "=" * 60)
+    print("Custom Callable Validators")
+    print("=" * 60)
+    
+    print("\n1. Palindrome checker:")
+    def is_palindrome(s: str) -> bool:
+        return s == s[::-1]
+    
+    print(f"   'racecar' == AnyValue(str, is_palindrome) → {'racecar' == AnyValue(str, is_palindrome)}")
+    print(f"   'hello' == AnyValue(str, is_palindrome) → {'hello' == AnyValue(str, is_palindrome)}")
+    
+    print("\n2. Prime number checker:")
+    def is_prime(n: int) -> bool:
+        if n < 2:
+            return False
+        for i in range(2, int(n ** 0.5) + 1):
+            if n % i == 0:
+                return False
+        return True
+    
+    print(f"   7 == AnyValue(int, is_prime) → {7 == AnyValue(int, is_prime)}")
+    print(f"   10 == AnyValue(int, is_prime) → {10 == AnyValue(int, is_prime)}")
+    
+    print("\n3. Email validator:")
+    def is_valid_email(s: str) -> bool:
+        return "@" in s and "." in s
+    
+    print(f"   'user@example.com' == AnyValue(str, is_valid_email) → {'user@example.com' == AnyValue(str, is_valid_email)}")
+    print(f"   'invalid-email' == AnyValue(str, is_valid_email) → {'invalid-email' == AnyValue(str, is_valid_email)}")
 
 
 def demo_mock_integration():
@@ -203,13 +262,15 @@ def main():
     demo_union_types()
     demo_none_support()
     demo_validation_constraints()
+    demo_predicate_validator()
+    demo_callable_validator()
     demo_mock_integration()
     demo_real_world_example()
     
     print("\n" + "=" * 60)
     print(" Demo Complete!")
     print("=" * 60)
-    print("\nFor more examples, run: uv run test_any_value.py")
+    print("\nFor more examples, run: uv run pytest test_any_value.py -v")
     print()
 
 
