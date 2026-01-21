@@ -138,10 +138,6 @@ class AnyValue:
                 elif isinstance(validator, Predicate):
                     if not validator.func(other):
                         return False
-                elif hasattr(validator, '__predicate__'):
-                    # Generic predicate support
-                    if not validator.__predicate__(other):
-                        return False
                 elif callable(validator):
                     # Try calling the validator
                     if not validator(other):
