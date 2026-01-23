@@ -170,8 +170,11 @@ class AnyValue:
                 elif callable(validator):
                     # Try calling the validator
                     if not validator(other):
-                        validator_name = getattr(validator, '__name__', str(validator))
-                        return (False, f"Custom validator '{validator_name}' failed for {other!r}")
+                        validator_name = getattr(validator, '__name__', None)
+                        if validator_name:
+                            return (False, f"Custom validator '{validator_name}' failed for {other!r}")
+                        else:
+                            return (False, f"Custom validator failed for {other!r}")
                 else:
                     # Unknown validator type, skip
                     continue
