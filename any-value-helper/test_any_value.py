@@ -299,3 +299,32 @@ def test_complex_scenarios():
     mock_validator.send_email.assert_called_once_with(
         AnyValue(str, is_valid_email)
     )
+
+
+def test_error_messages():
+    """Test that error messages are descriptive."""
+    # Test type mismatch error
+    matcher = AnyValue(int)
+    result = matcher == "hello"
+    assert result is False
+    assert hasattr(matcher, '_last_failure_reason')
+    assert 'Expected type int' in matcher._last_failure_reason
+    assert 'str' in matcher._last_failure_reason
+    
+    # Test validator failure error
+    matcher = AnyValue(int, Ge(10))
+    result = matcher == 5
+    assert result is False
+    assert 'Validator' in matcher._last_failure_reason
+    assert 'not >= 10' in matcher._last_failure_reason
+    
+    # Test length validator error
+    matcher = AnyValue(str, Len(5, 5))
+    result = matcher == "hi"
+    assert result is False
+    assert 'length' in matcher._last_failure_reason
+    
+    # Test __ne__ works correctly
+    matcher = AnyValue(int)
+    assert matcher != "hello"
+    assert not (matcher != 42)

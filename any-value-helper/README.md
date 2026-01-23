@@ -92,13 +92,30 @@ uv run demo.py
 
 ## Implementation Details
 
-The `AnyValue` class implements the `__eq__` method to compare values against:
+The `AnyValue` class implements the `__eq__` and `__ne__` methods to compare values against:
 
 1. **Type constraints**: Checks if the value matches the specified type(s)
 2. **None handling**: Special handling for None type in unions
 3. **annotated-types validation**: Applies validation predicates from annotated-types (Ge, Le, Gt, Lt, Len, MultipleOf, Predicate)
 4. **Custom callable validators**: Supports any callable that takes a value and returns a boolean
 5. **Mock compatibility**: Works with mock's comparison mechanism
+
+### Better Error Messages
+
+The implementation provides descriptive error messages when assertions fail:
+
+- **Type mismatches**: Shows expected type vs actual type with the value
+- **Validator failures**: Indicates which validator failed and why
+- **pytest integration**: Error messages are included in pytest's assertion output via `__repr__`
+
+Example error output:
+```
+AssertionError: assert 'hello' == AnyValue(int)
+  Reason: Expected type int, got str ('hello')
+
+AssertionError: assert 5 == AnyValue(int, Ge(ge=10))
+  Reason: Validator Ge(ge=10) failed: 5 is not >= 10
+```
 
 ## Design Decisions
 

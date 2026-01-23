@@ -71,7 +71,28 @@ class AnyValue:
         # Handle single type
         return (type_constraint,)
     
-    def _check_type(self, other: Any) -> bool:
+    def _format_type_constraint(self) -> str:
+        """
+        Format the type constraint as a readable string.
+        
+        Returns:
+            A formatted string representation of the type constraint
+        """
+        if len(self._accepted_types) == 1:
+            t = self._accepted_types[0]
+            if t is None:
+                return "None"
+            return getattr(t, '__name__', str(t))
+        else:
+            type_names = []
+            for t in self._accepted_types:
+                if t is None:
+                    type_names.append("None")
+                else:
+                    type_names.append(getattr(t, '__name__', str(t)))
+            return " | ".join(type_names)
+    
+    def _check_type(self, other: Any) -> tuple[bool, str | None]:
         """
         Check if the value matches the type constraint.
         
@@ -79,20 +100,27 @@ class AnyValue:
             other: The value to check
             
         Returns:
-            True if the value matches the type constraint, False otherwise
+            A tuple of (passed, failure_reason). If passed is True, failure_reason is None.
         """
         # Check if None is allowed
         if other is None:
-            return None in self._accepted_types
+            if None in self._accepted_types:
+                return (True, None)
+            else:
+                expected = self._format_type_constraint()
+                return (False, f"Expected type {expected}, got None")
         
         # Check if the value's type matches any accepted type
         for accepted_type in self._accepted_types:
             if accepted_type is not None and isinstance(other, accepted_type):
-                return True
+                return (True, None)
         
-        return False
+        # Type mismatch
+        actual_type = type(other).__name__
+        expected = self._format_type_constraint()
+        return (False, f"Expected type {expected}, got {actual_type} ({other!r})")
     
-    def _check_validators(self, other: Any) -> bool:
+    def _check_validators(self, other: Any) -> tuple[bool, str | None]:
         """
         Check if the value passes all validators.
         
@@ -100,10 +128,10 @@ class AnyValue:
             other: The value to validate
             
         Returns:
-            True if all validators pass, False otherwise
+            A tuple of (passed, failure_reason). If passed is True, failure_reason is None.
         """
         if not self.validators:
-            return True
+            return (True, None)
         
         # Apply each validator
         for validator in self.validators:
@@ -111,45 +139,46 @@ class AnyValue:
                 # Handle annotated-types validators
                 if isinstance(validator, Ge):
                     if not (other >= validator.ge):
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} is not >= {validator.ge}")
                 elif isinstance(validator, Le):
                     if not (other <= validator.le):
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} is not <= {validator.le}")
                 elif isinstance(validator, Gt):
                     if not (other > validator.gt):
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} is not > {validator.gt}")
                 elif isinstance(validator, Lt):
                     if not (other < validator.lt):
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} is not < {validator.lt}")
                 elif isinstance(validator, Len):
                     # Check length constraints
                     try:
                         length = len(other)
                         if validator.min_length is not None and length < validator.min_length:
-                            return False
+                            return (False, f"Validator {validator} failed: length {length} is less than min {validator.min_length}")
                         if validator.max_length is not None and length > validator.max_length:
-                            return False
+                            return (False, f"Validator {validator} failed: length {length} exceeds max {validator.max_length}")
                     except TypeError:
                         # Object doesn't have a length
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} has no length")
                 elif isinstance(validator, MultipleOf):
                     if not (other % validator.multiple_of == 0):
-                        return False
+                        return (False, f"Validator {validator} failed: {other!r} is not a multiple of {validator.multiple_of}")
                 elif isinstance(validator, Predicate):
                     if not validator.func(other):
-                        return False
+                        return (False, f"Predicate validator failed for {other!r}")
                 elif callable(validator):
                     # Try calling the validator
                     if not validator(other):
-                        return False
+                        validator_name = getattr(validator, '__name__', 'callable')
+                        return (False, f"Custom validator '{validator_name}' failed for {other!r}")
                 else:
                     # Unknown validator type, skip
                     continue
-            except Exception:
+            except Exception as e:
                 # If validation fails with an exception, consider it failed
-                return False
+                return (False, f"Validator {validator} raised exception: {e}")
         
-        return True
+        return (True, None)
     
     def __eq__(self, other: Any) -> bool:
         """
@@ -164,15 +193,36 @@ class AnyValue:
         Returns:
             True if the value matches the type and validators, False otherwise
         """
+        # Store the last comparison result for better error messages
+        self._last_comparison_value = other
+        
         # Check type constraint
-        if not self._check_type(other):
+        type_passed, type_reason = self._check_type(other)
+        if not type_passed:
+            self._last_failure_reason = type_reason
             return False
         
         # Check validators
-        if not self._check_validators(other):
+        validator_passed, validator_reason = self._check_validators(other)
+        if not validator_passed:
+            self._last_failure_reason = validator_reason
             return False
         
+        self._last_failure_reason = None
         return True
+    
+    def __ne__(self, other: Any) -> bool:
+        """
+        Check inequality. This enables better pytest assertion messages.
+        
+        Args:
+            other: The value to compare against
+            
+        Returns:
+            True if the value does NOT match the type and validators
+        """
+        result = not self.__eq__(other)
+        return result
     
     def __repr__(self) -> str:
         """
@@ -181,8 +231,15 @@ class AnyValue:
         Returns:
             A string describing the matcher
         """
-        type_str = str(self.type_constraint)
+        type_str = self._format_type_constraint()
         if self.validators:
             validator_strs = [str(v) for v in self.validators]
-            return f"AnyValue({type_str}, {', '.join(validator_strs)})"
-        return f"AnyValue({type_str})"
+            result = f"AnyValue({type_str}, {', '.join(validator_strs)})"
+        else:
+            result = f"AnyValue({type_str})"
+        
+        # Add failure reason if available (for better pytest output)
+        if hasattr(self, '_last_failure_reason') and self._last_failure_reason:
+            result += f"\n  Reason: {self._last_failure_reason}"
+        
+        return result
