@@ -43,6 +43,7 @@ class AnyValue:
         """
         self.type_constraint = type_constraint
         self.validators = validators
+        self._last_failure_reason: str | None = None
         
         # Parse the type constraint to extract accepted types
         self._accepted_types = self._parse_type_constraint(type_constraint)
@@ -169,7 +170,7 @@ class AnyValue:
                 elif callable(validator):
                     # Try calling the validator
                     if not validator(other):
-                        validator_name = getattr(validator, '__name__', 'callable')
+                        validator_name = getattr(validator, '__name__', str(validator))
                         return (False, f"Custom validator '{validator_name}' failed for {other!r}")
                 else:
                     # Unknown validator type, skip
@@ -235,7 +236,7 @@ class AnyValue:
             result = f"AnyValue({type_str})"
         
         # Add failure reason if available (for better pytest output)
-        if hasattr(self, '_last_failure_reason') and self._last_failure_reason:
+        if self._last_failure_reason:
             result += f"\n  Reason: {self._last_failure_reason}"
         
         return result
