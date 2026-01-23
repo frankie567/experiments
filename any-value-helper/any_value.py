@@ -79,19 +79,13 @@ class AnyValue:
         Returns:
             A formatted string representation of the type constraint
         """
-        if len(self._accepted_types) == 1:
-            t = self._accepted_types[0]
+        type_names = []
+        for t in self._accepted_types:
             if t is None:
-                return "None"
-            return getattr(t, '__name__', str(t))
-        else:
-            type_names = []
-            for t in self._accepted_types:
-                if t is None:
-                    type_names.append("None")
-                else:
-                    type_names.append(getattr(t, '__name__', str(t)))
-            return " | ".join(type_names)
+                type_names.append("None")
+            else:
+                type_names.append(getattr(t, '__name__', str(t)))
+        return " | ".join(type_names)
     
     def _check_type(self, other: Any) -> tuple[bool, str | None]:
         """
