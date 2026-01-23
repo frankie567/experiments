@@ -193,9 +193,6 @@ class AnyValue:
         Returns:
             True if the value matches the type and validators, False otherwise
         """
-        # Store the last comparison result for better error messages
-        self._last_comparison_value = other
-        
         # Check type constraint
         type_passed, type_reason = self._check_type(other)
         if not type_passed:
@@ -221,8 +218,7 @@ class AnyValue:
         Returns:
             True if the value does NOT match the type and validators
         """
-        result = not self.__eq__(other)
-        return result
+        return not self.__eq__(other)
     
     def __repr__(self) -> str:
         """
