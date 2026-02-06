@@ -4,6 +4,10 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+### [starlette-openapi-extension](./starlette-openapi-extension/)
+
+A lightweight extension for [Starlette](https://starlette.dev/) that enables automatic OpenAPI schema generation using [Pydantic](https://pydantic.dev/) models. Similar to FastAPI but with a more minimal, explicit approach that stays close to the OpenAPI specification. **Key features**: Type-safe request/response definitions with Pydantic validation, explicit API design mirroring OpenAPI structure, metaclass-based route registry for automatic schema generation, and support for union response types. The extension provides three main components: `APIRequest` for defining request schemas (query, path, body, headers), `APIResponse` for response definitions (status codes, content, headers), and `APIRoute` for creating type-safe routes with OpenAPI metadata. Includes comprehensive tests and a fully working demo API with user management endpoints demonstrating create, read, list, and update operations with proper error handling (404, 400, 403 responses).
+
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
 Performance benchmark comparing [tagflow](https://github.com/lessrest/tagflow) and [Jinja2](https://jinja.palletsprojects.com/en/stable/) for HTML generation. Tests various scenarios including simple pages, complex nested structures, and data tables. Results show Jinja2 with proper Environment setup is significantly faster across all scenarios.
