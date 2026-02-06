@@ -101,7 +101,7 @@ class APIRequest(BaseModel):
                     try:
                         body_data = await request.json()
                         data['body'] = body_type(**body_data)
-                    except:
+                    except Exception:
                         # No body present or invalid JSON - that's ok for optional fields
                         pass
         
