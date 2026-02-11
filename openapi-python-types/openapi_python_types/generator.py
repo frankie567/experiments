@@ -72,6 +72,10 @@ def generate_ast(spec: dict[str, Any], ctx: GeneratorContext) -> list[ast.stmt]:
         import_node = make_import_from("typing", sorted(ctx.imports))
         nodes.insert(0, import_node)
     
+    # Add __future__ import at the very beginning for forward references
+    future_import = make_import_from("__future__", ["annotations"])
+    nodes.insert(0, future_import)
+    
     return nodes
 
 

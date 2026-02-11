@@ -56,7 +56,8 @@ def transform_components_object(components: dict[str, Any], ctx: GeneratorContex
     Returns:
         List of AST statement nodes (class definitions, type aliases, etc.)
     """
-    nodes: list[ast.stmt] = []
+    class_defs: list[ast.stmt] = []
+    type_aliases: list[ast.stmt] = []
     
     # Transform schemas
     schemas = components.get("schemas", {})
@@ -72,11 +73,16 @@ def transform_components_object(components: dict[str, Any], ctx: GeneratorContex
         
         node = transform_schema_to_definition(name, schema, options)
         if node:
-            nodes.append(node)
+            # Separate TypedDict classes from type aliases
+            if isinstance(node, ast.ClassDef):
+                class_defs.append(node)
+            else:  # ast.Assign (type alias)
+                type_aliases.append(node)
     
     # TODO: Transform other components (responses, parameters, etc.)
     
-    return nodes
+    # Return class definitions first, then type aliases (for proper forward references)
+    return class_defs + type_aliases
 
 
 def transform_schema_to_definition(
