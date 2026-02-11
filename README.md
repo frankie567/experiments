@@ -4,6 +4,11 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+
+### [openapi-python-types](./openapi-python-types/)
+
+Python implementation inspired by [openapi-typescript](https://github.com/openapi-ts/openapi-typescript) that converts OpenAPI 3.0/3.1 specifications to Python type definitions. Generates **TypedDict** classes for schemas and **Protocol** classes for API operations. Supports common OpenAPI features including object types, arrays, enums, unions (anyOf/oneOf), nullable types, and references. Includes CLI interface and comprehensive tests. Focuses purely on type generation for static type checking with mypy/pyright, without runtime validation or HTTP client implementation.
+
 ### [any-value-helper](./any-value-helper/)
 
 A smarter alternative to `unittest.mock.ANY` for testing that supports type checking and validation constraints. Extends the standard ANY matcher with configurable type matching (single or union types with `|` operator), explicit None support, and `annotated-types` integration for advanced validation (Ge, Le, Len, etc.). Works seamlessly with unittest.mock for flexible assertion matching. **Example**: `mock.assert_called_with(AnyValue(int, Ge(0), Le(100)))` verifies the argument is an integer between 0 and 100 without checking the exact value. Provides a more precise testing approach while maintaining the flexibility of ANY matchers.
