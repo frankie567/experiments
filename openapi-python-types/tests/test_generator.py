@@ -6,7 +6,7 @@ from openapi_python_types import generate_types
 
 
 def test_simple_schema():
-    """Test generating TypedDict and dataclass for a simple schema."""
+    """Test generating TypedDict for a simple schema."""
     spec = """
 openapi: 3.0.0
 info:
@@ -27,15 +27,9 @@ components:
 
     result = generate_types(spec)
 
-    # Check TypedDict version (with Dict suffix)
-    assert "class PersonDict(TypedDict):" in result
+    assert "class Person(TypedDict):" in result
     assert "name: str" in result
     assert "age: NotRequired[int]" in result
-    
-    # Check dataclass version (original name)
-    assert "@dataclass" in result
-    assert "class Person:" in result
-    assert "age: int | None = field(default=None)" in result
 
 
 def test_enum_schema():
@@ -122,31 +116,27 @@ paths:
     assert "self.make_request(" in result
     assert "await self.make_request(" in result
 
-    # Check for path params TypedDict and dataclass
-    assert "class GetitemPathParamsDict(TypedDict):" in result
-    assert "class GetitemPathParams:" in result  # dataclass version
+    # Check for path params TypedDict
+    assert "class GetitemPathParams(TypedDict):" in result
     assert "id: int" in result
 
     # Check for the overload with correct parameters and response type
     assert "method: Literal['GET']" in result
     assert "path: Literal['/items/{id}']" in result
-    # Check for keyword-only marker and union type
-    assert "*, path_params: GetitemPathParamsDict | GetitemPathParams" in result
-    # Check for response_model parameter
-    assert "response_model: type[dict[str, Any]]" in result
+    # Check for keyword-only marker
+    assert "*, path_params: GetitemPathParams" in result
     assert (
         "-> dict[str, Any]:" in result
     )  # Response type for object schema (modern syntax)
     
     # Verify that query_params and body are NOT in the overload (since GET with path params doesn't have them)
-    # The overload now includes response_model parameter
-    assert "path_params: GetitemPathParamsDict | GetitemPathParams, response_model: type[dict[str, Any]]) -> dict[str, Any]:" in result
+    # The overload should end with just path_params
+    assert "*, path_params: GetitemPathParams) -> dict[str, Any]:" in result
     
     # Verify that the implementation method has optional parameters
     assert "path_params: Any | None=None" in result
     assert "query_params: Any | None=None" in result
     assert "body: Any | None=None" in result
-    assert "response_model: type[Any] | None=None" in result
 
 
 def test_json_format():
@@ -219,19 +209,14 @@ paths:
 
     result = generate_types(spec)
 
-    # Check that query params TypedDict and dataclass are created with NotRequired/optional fields
-    assert "class ListusersQueryParamsDict(TypedDict):" in result
-    assert "class ListusersQueryParams:" in result  # dataclass version
-    assert "limit: NotRequired[int]" in result  # In TypedDict
-    assert "limit: int | None = field(default=None)" in result  # In dataclass
+    # Check that query params TypedDict is created with NotRequired fields
+    assert "class ListusersQueryParams(TypedDict):" in result
+    assert "limit: NotRequired[int]" in result
     assert "offset: NotRequired[int]" in result
     
     # Check that query_params parameter has a default value (=...) in the overload
-    # This makes it optional to pass, and accepts union of both types
-    assert "query_params: ListusersQueryParamsDict | ListusersQueryParams=..." in result
-    
-    # Check for response_model parameter
-    assert "response_model: type[list[dict[str, Any]]]" in result
+    # This makes it optional to pass
+    assert "query_params: ListusersQueryParams=..." in result
     
     # Verify the implementation still has the optional parameter
     assert "query_params: Any | None=None" in result
@@ -280,18 +265,17 @@ paths:
     result = generate_types(spec)
 
     # Check that special characters in operationId are properly handled
-    # users:list -> UsersList (also check response_model is added for operations with responses)
-    assert "method: Literal['GET'], path: Literal['/users']" in result
-    assert "response_model: type[list[dict[str, Any]]]" in result
+    # users:list -> UsersList
+    assert "def __call__(self, method: Literal['GET'], path: Literal['/users'])" in result
     
     # api.v1.items -> ApiV1Items
-    assert "method: Literal['GET'], path: Literal['/items']" in result
+    assert "def __call__(self, method: Literal['GET'], path: Literal['/items'])" in result
     
     # products/search -> ProductsSearch
-    assert "method: Literal['GET'], path: Literal['/products']" in result
+    assert "def __call__(self, method: Literal['GET'], path: Literal['/products'])" in result
     
     # orders-list-all -> OrdersListAll
-    assert "method: Literal['GET'], path: Literal['/orders']" in result
+    assert "def __call__(self, method: Literal['GET'], path: Literal['/orders'])" in result
     
     # The main check: no invalid Python identifiers should be in the generated code
     # Check that none of the original operationIds with special chars appear as-is
@@ -337,16 +321,12 @@ components:
 
     result = generate_types(spec)
 
-    # Check that hyphens in schema names are removed (TypedDict versions)
-    assert "class CostMetadataInputDict(TypedDict):" in result
-    assert "class CostMetadataOutputDict(TypedDict):" in result
+    # Check that hyphens in schema names are removed
+    assert "class CostMetadataInput(TypedDict):" in result
+    assert "class CostMetadataOutput(TypedDict):" in result
     
-    # Check dataclass versions
-    assert "class CostMetadataInput:" in result
-    assert "class CostMetadataOutput:" in result
-    
-    # Check that references are also sanitized (uses dataclass type, not Dict)
-    assert "cost: CostMetadataInput | None" in result
+    # Check that references are also sanitized
+    assert "cost: NotRequired[CostMetadataInput]" in result
     
     # Check that invalid Python identifiers (with hyphens) don't appear
     assert "CostMetadata-Input" not in result

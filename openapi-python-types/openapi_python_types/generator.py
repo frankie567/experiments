@@ -68,18 +68,9 @@ def generate_ast(spec: dict[str, Any], ctx: GeneratorContext) -> list[ast.stmt]:
         nodes.extend(path_nodes)
     
     # Add imports at the beginning
-    typing_imports = ctx.imports
-    dataclasses_imports = ctx.dataclass_imports
-    
-    import_nodes: list[ast.stmt] = []
-    if typing_imports:
-        import_nodes.append(make_import_from("typing", sorted(typing_imports)))
-    if dataclasses_imports:
-        import_nodes.append(make_import_from("dataclasses", sorted(dataclasses_imports)))
-    
-    # Insert imports at the beginning
-    for i, import_node in enumerate(import_nodes):
-        nodes.insert(i, import_node)
+    if ctx.imports:
+        import_node = make_import_from("typing", sorted(ctx.imports))
+        nodes.insert(0, import_node)
     
     return nodes
 

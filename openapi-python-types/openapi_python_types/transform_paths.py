@@ -14,10 +14,8 @@ from .ast_utils import (
     any_type,
     literal_type,
     make_constant,
-    make_dataclass,
     make_name,
     make_overload_method,
-    make_subscript,
     make_typed_dict,
     not_required_type,
     union_type,
@@ -157,13 +155,19 @@ def transform_operation_to_overload(
         path_name = "".join(word.capitalize() for word in path_parts)
         base_name = f"{method.capitalize()}{path_name}"
 
-    # Collect path parameters - generate both TypedDict and dataclass
-    path_params_nodes, path_params_type = _generate_path_params_types(base_name, path, operation, options)
-    nodes.extend(path_params_nodes)
+    # Collect path parameters
+    path_params_dict = _generate_path_params_dict(base_name, path, operation, options)
+    path_params_type = None
+    if path_params_dict:
+        nodes.append(path_params_dict)
+        path_params_type = make_name(path_params_dict.name)
 
-    # Collect query parameters - generate both TypedDict and dataclass
-    query_params_nodes, query_params_type, query_params_all_optional = _generate_query_params_types(base_name, operation, options)
-    nodes.extend(query_params_nodes)
+    # Collect query parameters
+    query_params_dict, query_params_all_optional = _generate_query_params_dict(base_name, operation, options)
+    query_params_type = None
+    if query_params_dict:
+        nodes.append(query_params_dict)
+        query_params_type = make_name(query_params_dict.name)
 
     # Get body type
     body_type = _get_body_type(operation, options)
@@ -184,152 +188,6 @@ def transform_operation_to_overload(
     )
 
     return nodes, sync_overload, async_overload
-
-
-def _generate_path_params_types(
-    base_name: str,
-    path: str,
-    operation: dict[str, Any],
-    options: TransformOptions,
-) -> tuple[list[ast.stmt], ast.expr | None]:
-    """Generate both TypedDict and dataclass for path parameters.
-    
-    Returns:
-        Tuple of (list of class definitions, union type for overload or None)
-    """
-    # Extract path parameters from the path string
-    path_param_names = set(re.findall(r"\{(\w+)\}", path))
-
-    if not path_param_names:
-        return [], None
-
-    # Find parameter definitions
-    parameters = operation.get("parameters", [])
-    path_params = {}
-
-    for param in parameters:
-        if not isinstance(param, dict):
-            continue
-
-        # Handle $ref
-        if "$ref" in param:
-            param = options.ctx.resolve_ref(param["$ref"])
-
-        param_name = param.get("name")
-        param_in = param.get("in")
-
-        if param_in == "path" and param_name in path_param_names:
-            param_schema = param.get("schema", {})
-            param_type = transform_schema_object(param_schema, options)
-            path_params[param_name] = param_type
-
-    # If we couldn't find types for all path params, use str as fallback
-    for param_name in path_param_names:
-        if param_name not in path_params:
-            path_params[param_name] = make_name("str")
-
-    if not path_params:
-        return [], None
-
-    options.ctx.add_import("TypedDict")
-    options.ctx.add_dataclass_import("dataclass")
-
-    # Generate TypedDict version (with Dict suffix)
-    typed_dict_name = f"{base_name}PathParamsDict"
-    fields_typed_dict = [(name, type_ann) for name, type_ann in path_params.items()]
-    typed_dict_class = make_typed_dict(typed_dict_name, fields_typed_dict)
-
-    # Generate dataclass version (without suffix)
-    dataclass_name = f"{base_name}PathParams"
-    # All path params are required, so has_default=False for all
-    fields_dataclass = [(name, type_ann, False) for name, type_ann in path_params.items()]
-    dataclass_class = make_dataclass(dataclass_name, fields_dataclass)
-
-    # Create union type for overload: TypedDict | dataclass
-    union_type_expr = union_type([make_name(typed_dict_name), make_name(dataclass_name)])
-
-    return [typed_dict_class, dataclass_class], union_type_expr
-
-
-def _generate_query_params_types(
-    base_name: str,
-    operation: dict[str, Any],
-    options: TransformOptions,
-) -> tuple[list[ast.stmt], ast.expr | None, bool]:
-    """Generate both TypedDict and dataclass for query parameters.
-    
-    Args:
-        base_name: Base name for the classes
-        operation: The operation object from OpenAPI spec
-        options: Transform options with context
-    
-    Returns:
-        Tuple of (list of class definitions, union type for overload or None, all_optional bool):
-        - List of TypedDict and dataclass class definitions
-        - Union type expression for overload if params exist, None otherwise
-        - True if all query parameters are optional (NotRequired), False if any are required
-    """
-    parameters = operation.get("parameters", [])
-    query_params = []
-    required_params = set()
-
-    for param in parameters:
-        if not isinstance(param, dict):
-            continue
-
-        # Handle $ref
-        if "$ref" in param:
-            param = options.ctx.resolve_ref(param["$ref"])
-
-        param_name = param.get("name")
-        param_in = param.get("in")
-        param_required = param.get("required", False)
-
-        if param_in == "query":
-            param_schema = param.get("schema", {})
-            param_type = transform_schema_object(param_schema, options)
-            query_params.append((param_name, param_type))
-
-            if param_required:
-                required_params.add(param_name)
-
-    if not query_params:
-        return [], None, False
-
-    options.ctx.add_import("TypedDict")
-    options.ctx.add_dataclass_import("dataclass")
-    options.ctx.add_dataclass_import("field")
-
-    # Generate TypedDict version (with Dict suffix)
-    typed_dict_name = f"{base_name}QueryParamsDict"
-    fields_typed_dict = []
-    for param_name, param_type in query_params:
-        if param_name not in required_params:
-            options.ctx.add_import("NotRequired")
-            param_type = not_required_type(param_type)
-        fields_typed_dict.append((param_name, param_type))
-    typed_dict_class = make_typed_dict(typed_dict_name, fields_typed_dict)
-
-    # Generate dataclass version (without suffix)
-    dataclass_name = f"{base_name}QueryParams"
-    fields_dataclass = []
-    for param_name, param_type_base in query_params:
-        if param_name not in required_params:
-            # Optional field: add | None and has_default=True
-            param_type_dc = union_type([param_type_base, make_constant(None)])
-            fields_dataclass.append((param_name, param_type_dc, True))
-        else:
-            # Required field
-            fields_dataclass.append((param_name, param_type_base, False))
-    dataclass_class = make_dataclass(dataclass_name, fields_dataclass)
-
-    # Check if all fields are optional (no required params)
-    all_optional = len(required_params) == 0
-
-    # Create union type for overload: TypedDict | dataclass
-    union_type_expr = union_type([make_name(typed_dict_name), make_name(dataclass_name)])
-
-    return [typed_dict_class, dataclass_class], union_type_expr, all_optional
 
 
 def _generate_path_params_dict(
@@ -442,11 +300,7 @@ def _generate_query_params_dict(
 def _get_body_type(
     operation: dict[str, Any], options: TransformOptions
 ) -> ast.expr | None:
-    """Get the body type for an operation.
-    
-    Returns a union type that accepts both TypedDict and dataclass versions
-    of the schema (e.g., UserCreateDict | UserCreate).
-    """
+    """Get the body type for an operation."""
     request_body = operation.get("requestBody")
     if not request_body:
         return None
@@ -460,16 +314,7 @@ def _get_body_type(
     # Look for application/json content type
     if "application/json" in content:
         body_schema = content["application/json"].get("schema", {})
-        
-        # Check if this is a reference to a schema
-        if "$ref" in body_schema:
-            # Get the schema name (dataclass version)
-            schema_name = options.ctx.get_ref_name(body_schema["$ref"])
-            # Create union: SchemaDict | Schema
-            return union_type([make_name(f"{schema_name}Dict"), make_name(schema_name)])
-        else:
-            # Inline schema - just return the type
-            return transform_schema_object(body_schema, options)
+        return transform_schema_object(body_schema, options)
 
     return None
 
@@ -537,7 +382,7 @@ def _create_overload_for_operation(
     path_literal = literal_type([make_constant(path)])
     positional_params.append(("path", path_literal))
 
-    # Build keyword-only parameters (path_params, query_params, body, response_model)
+    # Build keyword-only parameters (path_params, query_params, body)
     # Only include parameters that are actually needed (not None)
     # For each parameter, include a flag indicating if it has a default value
     kwonly_params: list[tuple[str, ast.expr, bool]] = []
@@ -554,13 +399,6 @@ def _create_overload_for_operation(
     # Body - only add if there's a request body
     if body_type:
         kwonly_params.append(("body", body_type, False))
-
-    # Add response_model parameter (type[ResponseType])
-    # This allows the implementation to instantiate the correct dataclass
-    if not isinstance(response_type, ast.Constant) or response_type.value is not None:
-        # Only add response_model if the response is not None
-        response_model_type = make_subscript(make_name("type"), response_type)
-        kwonly_params.append(("response_model", response_model_type, False))
 
     # Return the response type
     sync_method = make_overload_method(
@@ -597,9 +435,8 @@ def create_request_classes(
                 ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
-                ast.arg(arg="response_model", annotation=union_type([make_subscript(make_name("type"), any_type()), make_constant(None)])),
             ],
-            kw_defaults=[make_constant(None), make_constant(None), make_constant(None), make_constant(None)],
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -626,9 +463,8 @@ def create_request_classes(
                 ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
-                ast.arg(arg="response_model", annotation=union_type([make_subscript(make_name("type"), any_type()), make_constant(None)])),
             ],
-            kw_defaults=[make_constant(None), make_constant(None), make_constant(None), make_constant(None)],
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -644,7 +480,6 @@ def create_request_classes(
                             arg="query_params", value=make_name("query_params")
                         ),
                         ast.keyword(arg="body", value=make_name("body")),
-                        ast.keyword(arg="response_model", value=make_name("response_model")),
                     ],
                 )
             )
@@ -677,9 +512,8 @@ def create_request_classes(
                 ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
-                ast.arg(arg="response_model", annotation=union_type([make_subscript(make_name("type"), any_type()), make_constant(None)])),
             ],
-            kw_defaults=[make_constant(None), make_constant(None), make_constant(None), make_constant(None)],
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
@@ -700,7 +534,6 @@ def create_request_classes(
                                 arg="query_params", value=make_name("query_params")
                             ),
                             ast.keyword(arg="body", value=make_name("body")),
-                            ast.keyword(arg="response_model", value=make_name("response_model")),
                         ],
                     )
                 )
@@ -724,9 +557,8 @@ def create_request_classes(
                 ast.arg(arg="path_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="query_params", annotation=union_type([any_type(), make_constant(None)])),
                 ast.arg(arg="body", annotation=union_type([any_type(), make_constant(None)])),
-                ast.arg(arg="response_model", annotation=union_type([make_subscript(make_name("type"), any_type()), make_constant(None)])),
             ],
-            kw_defaults=[make_constant(None), make_constant(None), make_constant(None), make_constant(None)],
+            kw_defaults=[make_constant(None), make_constant(None), make_constant(None)],
             defaults=[],
         ),
         body=[
