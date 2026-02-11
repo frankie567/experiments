@@ -4,9 +4,14 @@ This repository contains various experiments, prototypes and ideas I want to exp
 
 ## List
 
+
 ### [openapi-python-types](./openapi-python-types/)
 
 Python implementation inspired by [openapi-typescript](https://github.com/openapi-ts/openapi-typescript) that converts OpenAPI 3.0/3.1 specifications to Python type definitions. Generates **TypedDict** classes for schemas and **Protocol** classes for API operations. Supports common OpenAPI features including object types, arrays, enums, unions (anyOf/oneOf), nullable types, and references. Includes CLI interface and comprehensive tests. Focuses purely on type generation for static type checking with mypy/pyright, without runtime validation or HTTP client implementation.
+
+### [any-value-helper](./any-value-helper/)
+
+A smarter alternative to `unittest.mock.ANY` for testing that supports type checking and validation constraints. Extends the standard ANY matcher with configurable type matching (single or union types with `|` operator), explicit None support, and `annotated-types` integration for advanced validation (Ge, Le, Len, etc.). Works seamlessly with unittest.mock for flexible assertion matching. **Example**: `mock.assert_called_with(AnyValue(int, Ge(0), Le(100)))` verifies the argument is an integer between 0 and 100 without checking the exact value. Provides a more precise testing approach while maintaining the flexibility of ANY matchers.
 
 ### [tagflow-vs-jinja-benchmark](./tagflow-vs-jinja-benchmark/)
 
@@ -31,3 +36,7 @@ A [Hatchling](https://hatch.pypa.io/) build hook plugin for building [PyO3](http
 ### [dramatiq-memory-leak](./dramatiq-memory-leak/)
 
 Investigation and **solution** for memory leak issues in [Dramatiq](https://github.com/Bogdanp/dramatiq) task processing library's AsyncIO middleware. **Problem identified**: Tasks that raise exceptions containing large data objects exhibit severe memory leaks - memory accumulates with each retry, growing from 37 MB to 4.9 GB in 30 seconds (130x growth). **Nested exceptions are 2× worse** - reaching 9.3 GB due to exception chaining. **Solution implemented**: A fixed AsyncIO middleware (`FixedAsyncIO`) that properly cleans up exception references through explicit cleanup and forced garbage collection, reducing max memory from 4.9 GB to just 157 MB (31x improvement). Includes complete test scripts for multiple scenarios using `uv` inline dependencies, memory profiling, visual comparisons, and a drop-in replacement middleware that resolves the issue without requiring code changes.
+
+### [movie-duration-by-year](./movie-duration-by-year/)
+
+Analysis of movie duration evolution from 1930 to present using the [IMDB API](https://imdbapi.dev/). Fetches data for 67,514 movies across 96 years and generates visualizations showing how average movie runtimes have changed over time. **Key findings**: Average duration increased from **84.6 minutes in the 1930s to 109.1 minutes in the 2020s** (29% increase). The 1930s had the shortest movies (averaging 84.6 min), while 2025 shows the longest average at 116.0 minutes. Includes year-by-year and decade-by-decade analysis with dual-axis plots showing both average duration trends and the exponential growth in movie production volume.
